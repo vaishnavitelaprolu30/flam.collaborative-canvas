@@ -6,6 +6,7 @@ import { useUIStore } from './store/useUIStore';
 import { useBoardStore, setSocketForStore } from './store/useBoardStore';
 import { usePresenceStore } from './store/usePresenceStore';
 import { io } from 'socket.io-client';
+import { WS_URL } from './config';
 
 const App: React.FC = () => {
   const { currentBoardId } = useUIStore();
@@ -24,7 +25,7 @@ const App: React.FC = () => {
     }
 
     // Connect to backend Socket.IO server
-    const socket = io('http://localhost:4000');
+    const socket = io(WS_URL);
     socketRef.current = socket;
     setSocketForStore(socket);
 

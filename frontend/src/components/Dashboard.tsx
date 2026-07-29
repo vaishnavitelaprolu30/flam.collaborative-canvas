@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useUIStore } from '../store/useUIStore';
 import { useBoardStore } from '../store/useBoardStore';
 import { Plus, Search, Star, Trash2, Copy, Edit3, ArrowUpDown, Folder, X } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 interface BoardItem {
   id: string;
@@ -28,7 +29,7 @@ export const Dashboard: React.FC = () => {
   const fetchBoards = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:4000/api/boards?search=${encodeURIComponent(search)}&sort=${sort}`);
+      const response = await fetch(`${API_BASE_URL}/api/boards?search=${encodeURIComponent(search)}&sort=${sort}`);
       if (response.ok) {
         const data = await response.json();
         setBoards(data);
@@ -49,7 +50,7 @@ export const Dashboard: React.FC = () => {
     try {
       const id = Math.random().toString(36).substring(2, 9);
       const title = `Brainstorm - ${new Date().toLocaleDateString()}`;
-      const response = await fetch('http://localhost:4000/api/boards', {
+      const response = await fetch(`${API_BASE_URL}/api/boards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, title })
@@ -68,7 +69,7 @@ export const Dashboard: React.FC = () => {
     e.stopPropagation();
     try {
       const nextFav = board.favorite ? 0 : 1;
-      const response = await fetch(`http://localhost:4000/api/boards/${board.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/boards/${board.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ favorite: nextFav })
@@ -86,14 +87,14 @@ export const Dashboard: React.FC = () => {
     e.stopPropagation();
     try {
       // 1. Fetch current board elements
-      const getRes = await fetch(`http://localhost:4000/api/boards/${board.id}`);
+      const getRes = await fetch(`${API_BASE_URL}/api/boards/${board.id}`);
       if (!getRes.ok) return;
       const fullBoard = await getRes.json();
 
       // 2. Create duplicated board
       const newId = Math.random().toString(36).substring(2, 9);
       const newTitle = `${board.title} (Copy)`;
-      const createRes = await fetch('http://localhost:4000/api/boards', {
+      const createRes = await fetch(`${API_BASE_URL}/api/boards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: newId, title: newTitle })
@@ -101,7 +102,7 @@ export const Dashboard: React.FC = () => {
 
       if (createRes.ok) {
         // 3. Save elements to duplicated board
-        await fetch(`http://localhost:4000/api/boards/${newId}`, {
+        await fetch(`${API_BASE_URL}/api/boards/${newId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ elements: fullBoard.elements })
@@ -118,7 +119,7 @@ export const Dashboard: React.FC = () => {
     e.stopPropagation();
     if (!confirm('Are you sure you want to delete this board?')) return;
     try {
-      const response = await fetch(`http://localhost:4000/api/boards/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/boards/${id}`, {
         method: 'DELETE'
       });
       if (response.ok) {
@@ -134,7 +135,7 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     if (!renamingBoardId || !renameInput.trim()) return;
     try {
-      const response = await fetch(`http://localhost:4000/api/boards/${renamingBoardId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/boards/${renamingBoardId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: renameInput.trim() })

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { CanvasElement } from '../types/canvas';
 import { useUIStore } from './useUIStore';
+import { API_BASE_URL } from '../config';
 
 // Simple helper to connect socket client
 export let socketInstance: any = null;
@@ -239,7 +240,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     const { setConnectionStatus, setBoardTitle, setFavorite } = useUIStore.getState();
     setConnectionStatus('saving');
     try {
-      const response = await fetch(`http://localhost:4000/api/boards/${boardId}`);
+      const response = await fetch(`${API_BASE_URL}/api/boards/${boardId}`);
       if (!response.ok) throw new Error('Fetch failed');
       const data = await response.json();
       setBoardTitle(data.title || 'Untitled Board');
@@ -261,7 +262,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     setConnectionStatus('saving');
     try {
       const { elements } = get();
-      const response = await fetch(`http://localhost:4000/api/boards/${boardId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/boards/${boardId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -291,7 +292,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         const { elements } = get();
         const { boardTitle, isFavorite } = useUIStore.getState();
         
-        const response = await fetch(`http://localhost:4000/api/boards/${boardId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/boards/${boardId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -12,6 +12,7 @@ import { useBoardStore } from '../store/useBoardStore';
 import { usePresenceStore } from '../store/usePresenceStore';
 import { EmojiPicker } from './EmojiPicker';
 import { ToolType, CanvasElement, TextElement } from '../types/canvas';
+import { API_BASE_URL } from '../config';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -197,7 +198,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const fetchVersions = async () => {
     if (!currentBoardId) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/boards/${currentBoardId}/versions`);
+      const res = await fetch(`${API_BASE_URL}/api/boards/${currentBoardId}/versions`);
       if (res.ok) {
         const data = await res.json();
         setVersions(data);
@@ -218,7 +219,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const name = prompt('Enter a name for this checkpoint:');
     if (!name || !name.trim()) return;
     try {
-      const response = await fetch(`http://localhost:4000/api/boards/${currentBoardId}/versions`, {
+      const response = await fetch(`${API_BASE_URL}/api/boards/${currentBoardId}/versions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -237,7 +238,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handlePreviewVersion = async (version: any) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/boards/${currentBoardId}/versions/${version.id}`);
+      const res = await fetch(`${API_BASE_URL}/api/boards/${currentBoardId}/versions/${version.id}`);
       if (res.ok) {
         const data = await res.json();
         setPreviewVersionId(version.id);
@@ -262,7 +263,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (!confirm('Restore this version? Your current board state will be saved in history before restoring.')) return;
     
     try {
-      await fetch(`http://localhost:4000/api/boards/${currentBoardId}/versions`, {
+      await fetch(`${API_BASE_URL}/api/boards/${currentBoardId}/versions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -272,7 +273,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         })
       });
 
-      await fetch(`http://localhost:4000/api/boards/${currentBoardId}`, {
+      await fetch(`${API_BASE_URL}/api/boards/${currentBoardId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -823,7 +824,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* 2. LEFT FLOATING TOOLBAR */}
       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 flex items-center select-none">
-        <nav className="flex flex-col gap-1.5 p-1.5 floating-panel rounded-2xl relative">
+        <nav className="flex flex-col gap-1.5 p-1.5 floating-panel rounded-2xl relative max-h-[80vh] overflow-y-auto">
           {tools.map((t) => {
             const isActive = 
               (t.type === activeTool) ||

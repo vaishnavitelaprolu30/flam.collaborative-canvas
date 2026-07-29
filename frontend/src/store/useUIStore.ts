@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ToolType } from '../types/canvas';
 import { useBoardStore } from './useBoardStore';
+import { API_BASE_URL } from '../config';
 
 interface DevMetrics {
   fps: number;
@@ -216,7 +217,7 @@ export const useUIStore = create<UIState>((set) => ({
         selectedElements: serializedElements
       };
 
-      const response = await fetch('http://localhost:4000/api/ai/analyze', {
+      const response = await fetch(`${API_BASE_URL}/api/ai/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -7,7 +7,7 @@ import { usePresenceStore, Collaborator } from '../store/usePresenceStore';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { FloatingToolbar } from '../components/FloatingToolbar';
 import { worldToScreen } from '../utils/coordinate';
-import { CanvasElement, PencilElement, RectangleElement, EllipseElement, LineElement, ArrowElement, TextElement, StickyElement, ConnectorElement, EmojiElement } from '../types/canvas';
+import { CanvasElement, PencilElement, RectangleElement, EllipseElement, LineElement, ArrowElement, TextElement, StickyElement, ConnectorElement, EmojiElement, PolygonElement } from '../types/canvas';
 import { X, StickyNote, Type, Square, Smile, Frame, Sparkles } from 'lucide-react';
 
 const snapPointToAngle = (start: { x: number; y: number }, end: { x: number; y: number }): { x: number; y: number } => {
@@ -758,6 +758,38 @@ export const SketchCanvas: React.FC = () => {
             ...baseProperties,
             type: 'ellipse'
           } as EllipseElement;
+          break;
+        case 'triangle':
+          newEl = {
+            ...baseProperties,
+            type: 'triangle',
+            width: 100,
+            height: 100
+          } as PolygonElement;
+          break;
+        case 'diamond':
+          newEl = {
+            ...baseProperties,
+            type: 'diamond',
+            width: 100,
+            height: 100
+          } as PolygonElement;
+          break;
+        case 'hexagon':
+          newEl = {
+            ...baseProperties,
+            type: 'hexagon',
+            width: 100,
+            height: 100
+          } as PolygonElement;
+          break;
+        case 'star':
+          newEl = {
+            ...baseProperties,
+            type: 'star',
+            width: 100,
+            height: 100
+          } as PolygonElement;
           break;
         case 'line':
           newEl = {
