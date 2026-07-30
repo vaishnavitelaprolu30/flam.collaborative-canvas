@@ -19,6 +19,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const [mobileToolbarOpen, setMobileToolbarOpen] = useState(false);
   const {
     activeTool, setActiveTool,
     selectedElementIds, setSelectedElementIds,
@@ -823,8 +824,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* 2. LEFT FLOATING TOOLBAR */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 flex items-center select-none">
-        <nav className="flex flex-col gap-1.5 p-1.5 floating-panel rounded-2xl relative max-h-[80vh] overflow-y-auto">
+      <div className={`fixed inset-y-0 left-0 z-40 flex items-center select-none transform transition-transform ${mobileToolbarOpen ? 'translate-x-0' : '-translate-x-full'} sm:relative sm:translate-x-0 sm:transform-none`}>
+        <nav className="flex flex-col gap-1.5 p-1.5 floating-panel rounded-2xl relative max-h-[80vh] overflow-y-auto sm:max-h-[80vh] sm:overflow-y-auto">
           {tools.map((t) => {
             const isActive = 
               (t.type === activeTool) ||
@@ -1663,6 +1664,45 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="flex-1 w-full h-full relative outline-none overflow-hidden">
         {children}
       </main>
+        {/* Mobile Bottom Action Bar */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-zinc-900/95 p-2 flex justify-center gap-2 border-t border-slate-200 dark:border-zinc-800">
+          <button
+            onClick={() => {
+              // Delete selected elements
+              selectedElementIds.forEach(id => deleteElement(id));
+              setSelectedElementIds([]);
+            }}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl"
+            title="Delete"
+          >
+            <Trash2 size={16} />
+          </button>
+          <button
+            onClick={() => {
+              // Duplicate selected elements (simple shallow copy)
+              const dupes = elements.filter(el => selectedElementIds.includes(el.id)).map(el => ({
+                ...el,
+                id: Math.random().toString(36).substring(2, 9),
+                x: el.x + 20,
+                y: el.y + 20,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+              }));
+              dupes.forEach(d => addElement(d));
+            }}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl"
+            title="Duplicate"
+          >
+            <Copy size={16} />
+          </button>
+          <button
+            onClick={() => setEraserMode(!eraserMode)}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl"
+            title="Toggle Eraser"
+          >
+            {eraserMode ? <Eraser size={16} /> : <Eraser size={16} />}
+          </button>
+        </div>
 
       {/* 5. BOTTOM CONTROLS */}
       <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
@@ -2030,7 +2070,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
             </div>
           </div>
-        </aside>
+        </header>
+        {/* Mobile Hamburger */}
+        <div className="sm:hidden flex items-center p-2 bg-white/95 dark:bg-zinc-900/95 border-b border-slate-200 dark:border-zinc-800">
+          <button
+            onClick={() => setMobileToolbarOpen(!mobileToolbarOpen)}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl"
+            title="Toggle Toolbar"
+          >
+            <Menu size={20} />
+          </button>
+          <h1 className="ml-2 text-lg font-semibold">{boardTitle}</h1>
+        </div>
       )}
     </div>
   );
