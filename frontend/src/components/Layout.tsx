@@ -903,7 +903,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* 2A. Shapes Submenu */}
         {activeExpandableMenu === 'shapes' && (
-          <div className="ml-3 flex flex-col gap-1 p-2 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-36 font-sans">
+          <div className="pointer-events-auto ml-3 flex flex-col gap-1 p-2 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-36 font-sans">
             <div className="text-[9px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider px-2 py-0.5 border-b border-slate-100 dark:border-zinc-850 pb-1">Select Shape</div>
             {[
               { type: 'rectangle', label: 'Rectangle' },
@@ -935,7 +935,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* 2B. Lines Submenu */}
         {activeExpandableMenu === 'lines' && (
-          <div className="ml-3 flex flex-col gap-1 p-2 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-36 font-sans">
+          <div className="pointer-events-auto ml-3 flex flex-col gap-1 p-2 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-36 font-sans">
             <div className="text-[9px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider px-2 py-0.5 border-b border-slate-100 dark:border-zinc-850 pb-1">Select Line</div>
             {[
               { type: 'pencil', label: 'Pen (Freehand)' },
@@ -963,7 +963,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* 2C. Frames Preset Submenu */}
         {activeExpandableMenu === 'frames' && (
-          <div className="ml-3 flex flex-col gap-1 p-2 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-44 font-sans max-h-80 overflow-y-auto scrollbar-thin">
+          <div className="pointer-events-auto ml-3 flex flex-col gap-1 p-2 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-44 font-sans max-h-80 overflow-y-auto scrollbar-thin">
             <div className="text-[9px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider px-2 py-0.5 border-b border-slate-100 dark:border-zinc-855 pb-1">Preset Frames</div>
             {[
               { name: 'A4 Page', w: 800, h: 1130 },
@@ -988,7 +988,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* 2D. Sticky Color Palette */}
         {activeExpandableMenu === 'sticky-colors' && (
-          <div className="ml-3 flex flex-col gap-3.5 p-3 bg-white/98 dark:bg-zinc-900/98 border border-slate-200 dark:border-zinc-850 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-48 font-sans">
+          <div className="pointer-events-auto ml-3 flex flex-col gap-3.5 p-3 bg-white/98 dark:bg-zinc-900/98 border border-slate-200 dark:border-zinc-850 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-48 font-sans">
             <div className="text-[9px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider pb-1 border-b border-slate-100 dark:border-zinc-850">Sticky Note Color</div>
             
             <div className="grid grid-cols-4 gap-2">
@@ -1040,7 +1040,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* 2E. More Tools searchable Panel */}
         {activeExpandableMenu === 'more-tools' && (
-          <div className="ml-3 flex flex-col gap-3 p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl rounded-2xl animate-in slide-in-from-left-2 duration-150 w-72 h-[400px] font-sans">
+          <div className="pointer-events-auto ml-3 flex flex-col gap-3 p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl rounded-2xl animate-in slide-in-from-left-2 duration-150 w-72 h-[400px] font-sans">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-2">
               <span className="font-bold text-slate-800 dark:text-zinc-205 text-sm">More Tools</span>
               <button onClick={() => setActiveExpandableMenu(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-400">
