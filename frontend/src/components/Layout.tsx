@@ -831,8 +831,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* 2. LEFT FLOATING TOOLBAR */}
-      <div className={`fixed inset-y-0 left-0 z-40 flex items-center select-none transform transition-transform ${mobileToolbarOpen ? 'translate-x-0' : '-translate-x-full'} sm:relative sm:translate-x-0 sm:transform-none`}>
-        <nav className="flex flex-col gap-1.5 p-1.5 floating-panel rounded-2xl relative max-h-[80vh] overflow-y-auto sm:max-h-[80vh] sm:overflow-y-auto">
+      <div className={`fixed sm:absolute left-4 top-1/2 -translate-y-1/2 z-30 flex items-center select-none pointer-events-none transition-transform duration-200 ${mobileToolbarOpen ? 'translate-x-0' : '-translate-x-32 sm:translate-x-0'}`}>
+        <nav className="pointer-events-auto flex flex-col gap-1.5 p-1.5 floating-panel rounded-2xl relative max-h-[80vh] overflow-y-auto">
           {tools.map((t) => {
             const isActive = 
               (t.type === activeTool) ||
