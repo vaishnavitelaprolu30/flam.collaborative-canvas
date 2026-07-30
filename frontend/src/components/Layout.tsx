@@ -5,7 +5,7 @@ import {
   Sun, Moon, Plus, Maximize, Map, X, Copy, 
   Trash2, Layers, BringToFront, SendToBack,
   ChevronDown, Cpu, Clock, Folder, ArrowLeft, Sparkles,
-  Star, FileText, Check, Loader2, Settings, Frame
+  Star, FileText, Check, Loader2, Settings, Frame, Menu
 } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
 import { useBoardStore } from '../store/useBoardStore';
@@ -504,6 +504,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="absolute top-4 left-4 right-4 z-30 h-14 flex items-center justify-between floating-panel rounded-2xl px-4 select-none">
         {/* Left: Logo & Board Title */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMobileToolbarOpen(!mobileToolbarOpen)}
+            className="sm:hidden p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+            title="Toggle Toolbar"
+          >
+            <Menu size={16} />
+          </button>
           <button
             onClick={() => setCurrentBoardId(null)}
             className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-1"
@@ -1696,11 +1703,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Copy size={16} />
           </button>
           <button
-            onClick={() => setEraserMode(!eraserMode)}
+            onClick={() => setEraserMode(eraserMode === 'object' ? 'stroke' : 'object')}
             className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl"
-            title="Toggle Eraser"
+            title="Toggle Eraser Mode"
           >
-            {eraserMode ? <Eraser size={16} /> : <Eraser size={16} />}
+            <Eraser size={16} />
           </button>
         </div>
 
@@ -2070,18 +2077,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
             </div>
           </div>
-        </header>
-        {/* Mobile Hamburger */}
-        <div className="sm:hidden flex items-center p-2 bg-white/95 dark:bg-zinc-900/95 border-b border-slate-200 dark:border-zinc-800">
-          <button
-            onClick={() => setMobileToolbarOpen(!mobileToolbarOpen)}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl"
-            title="Toggle Toolbar"
-          >
-            <Menu size={20} />
-          </button>
-          <h1 className="ml-2 text-lg font-semibold">{boardTitle}</h1>
-        </div>
+        </aside>
       )}
     </div>
   );
