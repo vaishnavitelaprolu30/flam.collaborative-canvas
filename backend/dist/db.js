@@ -6,9 +6,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.run = exports.query = void 0;
 const sqlite3_1 = __importDefault(require("sqlite3"));
 const path_1 = __importDefault(require("path"));
-const dbPath = process.env.VERCEL
-    ? path_1.default.join('/tmp', 'syncsketch.db')
-    : path_1.default.resolve(__dirname, '../syncsketch.db');
+/**
+ * Where the SQLite file lives.
+ *
+ * `DB_PATH` should point at a mounted persistent disk in production. Without
+ * one, most hosts hand the process an ephemeral filesystem that is wiped on
+ * every deploy and restart — the API keeps answering, but every saved board
+ * silently disappears. Falls back to the repo copy for local development.
+ */
+const dbPath = process.env.DB_PATH ||
+    (process.env.VERCEL
+        ? path_1.default.join('/tmp', 'syncsketch.db')
+        : path_1.default.resolve(__dirname, '../syncsketch.db'));
 const db = new sqlite3_1.default.Database(dbPath, (err) => {
     if (err) {
         console.error('Database connection failed:', err);

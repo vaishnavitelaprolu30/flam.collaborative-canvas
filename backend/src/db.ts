@@ -1,9 +1,19 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 
-const dbPath = process.env.VERCEL
-  ? path.join('/tmp', 'syncsketch.db')
-  : path.resolve(__dirname, '../syncsketch.db');
+/**
+ * Where the SQLite file lives.
+ *
+ * `DB_PATH` should point at a mounted persistent disk in production. Without
+ * one, most hosts hand the process an ephemeral filesystem that is wiped on
+ * every deploy and restart — the API keeps answering, but every saved board
+ * silently disappears. Falls back to the repo copy for local development.
+ */
+const dbPath =
+  process.env.DB_PATH ||
+  (process.env.VERCEL
+    ? path.join('/tmp', 'syncsketch.db')
+    : path.resolve(__dirname, '../syncsketch.db'));
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {

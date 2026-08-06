@@ -1,10 +1,31 @@
+# Render blueprint for the SyncSketch backend.
+#
+# Vercel cannot host this half: Socket.IO needs long-lived WebSocket
+# connections and SQLite needs a real filesystem, neither of which a
+# serverless function provides. This runs the Express server as a normal
+# long-running service instead.
+#
+# To use: push this file, then on Render choose New > Blueprint and point it
+# at the repository. Afterwards copy the service URL into the frontend's
+# VITE_API_URL environment variable on Vercel and redeploy the frontend.
 services:
   - type: web
-    name: flam-backend
-    env: node
+    name: syncsketch-backend
+    runtime: node
     rootDir: backend
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
-      - key: PORT
-        value: 4000
+      # Render injects PORT itself; the server already reads it.
+      - key: NODE_VERSION
+        value: 20
+      # Keep the database on the mounted disk below, not on the ephemeral
+      # container filesystem, or boards vanish on every redeploy.
+      - key: DB_PATH
+        value: /var/data/syncsketch.db
+    disk:
+      name: syncsketch-data
+      mountPath: /var/data
+      sizeGB: 1
