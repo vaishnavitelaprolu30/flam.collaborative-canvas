@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Layout } from './components/Layout';
 import { SketchCanvas } from './canvas/SketchCanvas';
 import { Dashboard } from './components/Dashboard';
+import { CanvasErrorBoundary } from './components/CanvasErrorBoundary';
 import { useUIStore } from './store/useUIStore';
 import { useBoardStore, setSocketForStore } from './store/useBoardStore';
 import { usePresenceStore } from './store/usePresenceStore';
@@ -9,9 +10,20 @@ import { io } from 'socket.io-client';
 import { WS_URL } from './config';
 
 const App: React.FC = () => {
-  const { currentBoardId } = useUIStore();
+  const { currentBoardId, syncTheme } = useUIStore();
   const { localUser, updateCollaborator, removeCollaborator, clearCollaborators } = usePresenceStore();
   const socketRef = useRef<any>(null);
+
+  // Theme syncing lives here, not in Layout: Layout only mounts once a board is
+  // open, so the dashboard never got the `dark` class applied to <html>.
+  useEffect(() => {
+    syncTheme();
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onSystemChange = () => syncTheme();
+    media.addEventListener('change', onSystemChange);
+    return () => media.removeEventListener('change', onSystemChange);
+  }, [syncTheme]);
 
   useEffect(() => {
     if (!currentBoardId) {
@@ -106,7 +118,11 @@ const App: React.FC = () => {
   return (
     <Layout>
       <div className="w-full h-full relative">
-        <SketchCanvas />
+        {/* Scoped to the canvas so a bad element cannot blank the whole app,
+            and the surrounding chrome stays usable enough to leave the board. */}
+        <CanvasErrorBoundary onLeave={() => useUIStore.getState().setCurrentBoardId(null)}>
+          <SketchCanvas />
+        </CanvasErrorBoundary>
       </div>
     </Layout>
   );

@@ -101,3 +101,164 @@
 .floating-panel {
   @apply bg-white/85 dark:bg-darkbg-panel/85 backdrop-blur-md border border-slate-200/60 dark:border-zinc-800/85 shadow-premium dark:shadow-premium-dark transition-colors duration-200;
 }
+
+/* ==========================================================
+   Diary
+   Paper, rules and binding are drawn with gradients rather
+   than images so the page stays crisp at any zoom and adds
+   nothing to the bundle.
+   ========================================================== */
+
+.diary-page {
+  /* Warm aged paper with a faint vignette toward the binding.
+     The ruled lines deliberately live on the writing area itself
+     (.diary-body) rather than here: the header above it is a variable
+     height, so page-level rules could never line up with the text
+     baselines. Ruling the textarea makes the alignment self-correcting. */
+  background-color: #fdfaf1;
+  background-image: linear-gradient(
+    90deg,
+    rgba(180, 160, 120, 0.16) 0px,
+    rgba(180, 160, 120, 0) 34px
+  );
+  position: relative;
+}
+
+/* The red margin rule. */
+.diary-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 52px;
+  width: 1.5px;
+  background: rgba(220, 110, 110, 0.55);
+  pointer-events: none;
+}
+
+.dark .diary-page {
+  background-color: #26231d;
+  background-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.28) 0px,
+    rgba(0, 0, 0, 0) 34px
+  );
+}
+
+.dark .diary-page::before {
+  background: rgba(248, 113, 113, 0.4);
+}
+
+/* Punched holes down the binding edge. */
+.diary-binding {
+  background-image: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.30) 0 5px,
+    rgba(0, 0, 0, 0.10) 5px 6.5px,
+    transparent 6.5px
+  );
+  background-size: 100% 62px;
+  background-repeat: repeat-y;
+  background-position: center 26px;
+}
+
+.dark .diary-binding {
+  background-image: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.6) 0 5px,
+    rgba(255, 255, 255, 0.06) 5px 6.5px,
+    transparent 6.5px
+  );
+}
+
+/* Handwriting stack. Falls back through what ships on macOS,
+   Windows and Linux before giving up on cursive entirely. */
+.diary-hand {
+  font-family: 'Bradley Hand', 'Segoe Script', 'Snell Roundhand', 'Brush Script MT',
+    'Comic Sans MS', cursive;
+  letter-spacing: 0.2px;
+}
+
+/* Ruled writing area.
+   The rule sits at 23px inside each 32px line box, which is just under the
+   text baseline for a 17px face — so you write *on* the line and descenders
+   cross it, the way they do on real paper. `background-attachment: local`
+   keeps the rules moving with the text as the field scrolls. */
+.diary-body {
+  line-height: 32px;
+  padding-top: 0;
+  background-color: transparent;
+  background-attachment: local;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 23px,
+    rgba(120, 145, 175, 0.32) 23px,
+    rgba(120, 145, 175, 0.32) 24px,
+    transparent 24px,
+    transparent 32px
+  );
+}
+
+.dark .diary-body {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 23px,
+    rgba(148, 163, 184, 0.24) 23px,
+    rgba(148, 163, 184, 0.24) 24px,
+    transparent 24px,
+    transparent 32px
+  );
+}
+
+/* The title gets a single rule of its own so it also sits on a line. */
+.diary-title {
+  line-height: 40px;
+  background-attachment: local;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 32px,
+    rgba(120, 145, 175, 0.32) 32px,
+    rgba(120, 145, 175, 0.32) 33px,
+    transparent 33px
+  );
+}
+
+.dark .diary-title {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 32px,
+    rgba(148, 163, 184, 0.24) 32px,
+    rgba(148, 163, 184, 0.24) 33px,
+    transparent 33px
+  );
+}
+
+.diary-sticker {
+  cursor: grab;
+  user-select: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.22));
+  transition: transform 0.12s ease;
+}
+
+.diary-sticker:active {
+  cursor: grabbing;
+}
+
+.diary-sticker:hover {
+  transform-origin: center;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+/* Washi tape holding the page down. */
+.diary-tape {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 214, 165, 0.75) 0 7px,
+    rgba(255, 233, 200, 0.75) 7px 14px
+  );
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}

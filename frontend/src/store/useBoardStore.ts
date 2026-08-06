@@ -16,6 +16,14 @@ interface BoardState {
   
   // Actions
   addElement: (element: CanvasElement, skipBroadcast?: boolean) => void;
+  /**
+   * Insert many elements as a single operation.
+   *
+   * Calling `addElement` in a loop pushes one undo frame per element, so
+   * dropping a 16-element diagram cost sixteen presses of Ctrl+Z to take back.
+   * This commits one history entry and one autosave for the whole insert.
+   */
+  addElements: (elements: CanvasElement[], skipBroadcast?: boolean) => void;
   updateElement: (id: string, updates: Partial<CanvasElement>, skipBroadcast?: boolean) => void;
   deleteElement: (id: string, skipBroadcast?: boolean) => void;
   deleteElements: (ids: string[], skipBroadcast?: boolean) => void;
@@ -64,6 +72,35 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     });
     
     // Trigger Autosave
+    const boardId = useUIStore.getState().currentBoardId;
+    if (boardId) get().triggerAutosave(boardId);
+  },
+
+  addElements: (newElements, skipBroadcast = false) => {
+    if (newElements.length === 0) return;
+
+    set((state) => {
+      const nextElements = [...state.elements, ...newElements];
+      const nextHistory = state.history.slice(0, state.historyIndex + 1);
+
+      // Peers still receive one message per element — the wire protocol takes a
+      // single element — but locally this is one undoable step.
+      if (!skipBroadcast && socketInstance) {
+        const boardId = useUIStore.getState().currentBoardId;
+        if (boardId) {
+          newElements.forEach((element) => {
+            socketInstance.emit('element-sync', { boardId, type: 'create', element });
+          });
+        }
+      }
+
+      return {
+        elements: nextElements,
+        history: [...nextHistory, nextElements],
+        historyIndex: nextHistory.length,
+      };
+    });
+
     const boardId = useUIStore.getState().currentBoardId;
     if (boardId) get().triggerAutosave(boardId);
   },

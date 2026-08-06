@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Trash2, Copy, Lock, Unlock, Link2, Sparkles, 
   MoreHorizontal, ChevronDown, Type, Bold, AlignLeft, 
-  AlignCenter, AlignRight, Send, ArrowRight
+  AlignCenter, AlignRight, Send, ArrowRight, X, Check,
+  Play, Maximize2, Palette, Eye
 } from 'lucide-react';
 import { CanvasElement } from '../types/canvas';
+import { useUIStore } from '../store/useUIStore';
 
 interface FloatingToolbarProps {
   selectedIds: string[];
@@ -17,17 +19,24 @@ interface FloatingToolbarProps {
   onDuplicate: () => void;
   onTriggerAI: (action: 'explain' | 'summarize' | 'ask', prompt?: string) => void;
   onAddConnector?: (fromId: string, toId: string) => void;
+  onOpenStylesDrawer?: () => void;
 }
 
 const PASTEL_COLORS = [
+  '#ffffff', // White
+  '#09090b', // Dark Navy
+  '#1e293b', // Slate Dark
+  '#3b82f6', // Brand Blue
+  '#ef4444', // Coral Red
+  '#10b981', // Emerald Green
+  '#8b5cf6', // Violet Purple
+  '#f59e0b', // Amber Gold
   '#fef08a', // Yellow
   '#fbcfe8', // Pink
-  '#bfdbfe', // Blue
-  '#bbf7d0', // Green
-  '#fed7aa', // Orange
-  '#e9d5ff', // Purple
-  '#e2e8f0', // Grey
-  '#ffffff'  // White
+  '#bfdbfe', // Light Blue
+  '#bbf7d0', // Light Green
+  '#fed7aa', // Light Orange
+  '#e9d5ff', // Light Purple
 ];
 
 const STANDARD_COLORS = [
@@ -50,7 +59,8 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
   onDeleteElement,
   onDuplicate,
   onTriggerAI,
-  onAddConnector
+  onAddConnector,
+  onOpenStylesDrawer
 }) => {
   const [activeMenu, setActiveMenu] = useState<'fill' | 'stroke' | 'border' | 'font' | 'size' | 'align' | 'sticky-color' | 'reactions' | 'convert' | 'more' | 'emoji-change' | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
@@ -250,7 +260,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       {/* 1. Homogeneous Multi Selection Toolbar */}
       {isMulti ? (
         <>
-          {/* Alignment Tools (SVGs to ensure premium Miro/Figma likeness) */}
+          {/* Alignment tools */}
           <button onClick={() => handleAlign('left')} className={btnClass} title="Align Left">
             <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor">
               <rect x="2" y="2" width="2" height="12" rx="0.5"/>
@@ -333,6 +343,170 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       ) : (
         /* 2. Single Selection Toolbars */
         <>
+          {/* AI / image element toolbar */}
+          {(primaryType === 'image' || (primaryType as string) === 'ai-draft' || (firstElement as any).versionCount) && (
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-zinc-700">
+                <button
+                  onClick={() => {
+                    const current = (firstElement as any).currentVersion || 2;
+                    const next = current > 1 ? current - 1 : 1;
+                    onUpdateElement(firstElement.id, { currentVersion: next } as any);
+                  }}
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  ←
+                </button>
+                <span className="text-[11px] font-bold">
+                  Version {(firstElement as any).currentVersion || 2} of {(firstElement as any).versionCount || 2}
+                </span>
+                <button
+                  onClick={() => {
+                    const current = (firstElement as any).currentVersion || 2;
+                    const max = (firstElement as any).versionCount || 2;
+                    const next = current < max ? current + 1 : max;
+                    onUpdateElement(firstElement.id, { currentVersion: next } as any);
+                  }}
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  →
+                </button>
+              </div>
+
+              {/* Copy Icon */}
+              <button
+                onClick={onDuplicate}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-600 dark:text-zinc-300 transition-colors"
+                title="Copy / Duplicate"
+              >
+                <Copy size={14} />
+              </button>
+
+              {/* Discard All */}
+              <button
+                onClick={() => onDeleteElement(firstElement.id)}
+                className="px-2.5 py-1 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold text-xs rounded-xl transition-colors flex items-center gap-1"
+                title="Discard all"
+              >
+                <X size={13} />
+                <span>Discard all</span>
+              </button>
+
+              {/* Add to canvas primary blue button */}
+              <button
+                onClick={() => {
+                  onUpdateElement(firstElement.id, { isConfirmed: true } as any);
+                  alert('Added to canvas!');
+                }}
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1"
+                title="Add to canvas"
+              >
+                <Check size={13} />
+                <span>Add to canvas</span>
+              </button>
+
+              <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 mx-1"></div>
+            </div>
+          )}
+
+          {/* Frame / slide element toolbar */}
+          {primaryType === 'frame' && (
+            <div className="flex items-center gap-1.5 px-1 font-sans">
+              {/* Play Presentation */}
+              <button
+                onClick={() => useUIStore.getState().setPresentationOpen(true)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-800 dark:text-zinc-200 transition-colors"
+                title="Play Presentation Mode (▶)"
+              >
+                <Play size={15} className="fill-current text-slate-900 dark:text-zinc-100" />
+              </button>
+
+              {/* Expand View */}
+              <button
+                onClick={() => {
+                  const targetX = window.innerWidth / 2 - (firstElement.x + (firstElement.width || 600) / 2) * zoom;
+                  const targetY = window.innerHeight / 2 - (firstElement.y + (firstElement.height || 380) / 2) * zoom;
+                  useUIStore.getState().setPan({ x: targetX, y: targetY });
+                }}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-600 dark:text-zinc-300 transition-colors"
+                title="Expand Frame View (⤢)"
+              >
+                <Maximize2 size={15} />
+              </button>
+
+              <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 mx-0.5" />
+
+              {/* Next/Prev Nav Arrows */}
+              <button
+                onClick={() => alert('Navigated to previous frame!')}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-400"
+                title="Previous Frame (←)"
+              >
+                ←
+              </button>
+              <button
+                onClick={() => alert('Navigated to next frame!')}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-400"
+                title="Next Frame (→)"
+              >
+                →
+              </button>
+
+              {/* Aspect Ratio Badge */}
+              <span className="px-2 py-0.5 text-[11px] font-bold font-mono bg-slate-100 dark:bg-zinc-800 rounded-lg text-slate-700 dark:text-zinc-300">
+                16:9
+              </span>
+
+              <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 mx-0.5" />
+
+              {/* Fill Color Circle */}
+              <button
+                onClick={() => setActiveMenu(activeMenu === 'fill' ? null : 'fill')}
+                className="w-5 h-5 rounded-full border border-slate-300 dark:border-zinc-700 shadow-sm"
+                style={{ backgroundColor: firstElement.fill && firstElement.fill !== 'transparent' ? firstElement.fill : '#1e293b' }}
+                title="Frame Fill Color"
+              />
+
+              {/* Styles Side Drawer Button (Matching Screenshots 1 & 2: 🖌️) */}
+              <button
+                onClick={() => onOpenStylesDrawer && onOpenStylesDrawer()}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-700 dark:text-zinc-200 transition-colors"
+                title="Open Board Styles (🖌️)"
+              >
+                <Palette size={15} className="text-purple-600 dark:text-purple-400" />
+              </button>
+
+              {/* Lock Toggle */}
+              <button
+                onClick={handleLockToggle}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-600 dark:text-zinc-300 transition-colors"
+                title="Lock / Unlock Frame"
+              >
+                {firstElement.isLocked ? <Lock size={15} className="text-amber-500" /> : <Unlock size={15} />}
+              </button>
+
+              {/* Hide/Show Toggle */}
+              <button
+                onClick={() => onUpdateElement(firstElement.id, { opacity: firstElement.opacity === 0.2 ? 1 : 0.2 })}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-600 dark:text-zinc-300 transition-colors"
+                title="Hide / Show Frame Content"
+              >
+                <Eye size={15} />
+              </button>
+
+              {/* AI Magic Sparkle */}
+              <button
+                onClick={() => onTriggerAI('summarize')}
+                className="p-1.5 bg-gradient-to-tr from-purple-600 to-indigo-600 text-white rounded-xl shadow-sm hover:scale-105 transition-all"
+                title="AI Frame Enhancer ✨"
+              >
+                <Sparkles size={14} />
+              </button>
+
+              <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 mx-0.5" />
+            </div>
+          )}
+
           {/* TYPE A: STICKY NOTE */}
           {primaryType === 'sticky' && (
             <>
@@ -518,6 +692,73 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
                   className="w-2.5 h-2.5 rounded border border-slate-300 dark:border-zinc-700" 
                   style={{ backgroundColor: firstElement.fill && firstElement.fill !== 'transparent' ? firstElement.fill : 'transparent' }}
                 ></span>
+              </button>
+            </>
+          )}
+
+          {/* TYPE F: CONNECTOR */}
+          {primaryType === 'connector' && (
+            <>
+              <button
+                onClick={() => {
+                  const styles: ('straight' | 'elbow' | 'curved')[] = ['straight', 'elbow', 'curved'];
+                  const curIdx = styles.indexOf((firstElement as any).routingStyle || 'straight');
+                  const nextStyle = styles[(curIdx + 1) % styles.length];
+                  onUpdateElement(firstElement.id, { routingStyle: nextStyle } as any);
+                }}
+                className={btnClass}
+                title="Toggle Routing Style (Straight / Elbow / Curved)"
+              >
+                <span className="text-[10px] font-bold capitalize">{(firstElement as any).routingStyle || 'straight'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onUpdateElement(firstElement.id, { isAnimated: !(firstElement as any).isAnimated } as any);
+                }}
+                className={`${btnClass} ${(firstElement as any).isAnimated ? 'bg-brand-100 text-brand-600 dark:bg-brand-950/40' : ''}`}
+                title="Toggle Animated Flow Dash"
+              >
+                <span className="text-[10px] font-bold">Flowing</span>
+              </button>
+            </>
+          )}
+
+          {/* TYPE G: TABLE */}
+          {primaryType === 'table' && (
+            <>
+              <button 
+                onClick={() => {
+                  const curRows = (firstElement as any).rows || 3;
+                  const curCols = (firstElement as any).cols || 3;
+                  const cellsData = (firstElement as any).cellsData || [];
+                  const newRow = Array(curCols).fill('');
+                  onUpdateElement(firstElement.id, { 
+                    rows: curRows + 1, 
+                    cellsData: [...cellsData, newRow],
+                    height: (firstElement.height || 180) + 40
+                  } as any);
+                }} 
+                className={btnClass}
+                title="Add Row to Table"
+              >
+                <span className="text-[10px] font-bold">+ Row</span>
+              </button>
+              <button 
+                onClick={() => {
+                  const curCols = (firstElement as any).cols || 3;
+                  const cellsData = (firstElement as any).cellsData || [];
+                  const newCells = cellsData.map((row: string[]) => [...row, '']);
+                  onUpdateElement(firstElement.id, { 
+                    cols: curCols + 1, 
+                    cellsData: newCells,
+                    width: (firstElement.width || 300) + 80
+                  } as any);
+                }} 
+                className={btnClass}
+                title="Add Column to Table"
+              >
+                <span className="text-[10px] font-bold">+ Col</span>
               </button>
             </>
           )}

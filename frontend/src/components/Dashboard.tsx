@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useUIStore } from '../store/useUIStore';
 import { useBoardStore } from '../store/useBoardStore';
-import { Plus, Search, Star, Trash2, Copy, Edit3, ArrowUpDown, Folder, X } from 'lucide-react';
+import { Plus, Search, Star, Trash2, Copy, Edit3, ArrowUpDown, Folder, X, Sparkles, LayoutGrid, GitBranch, Trello, ShieldAlert } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 interface BoardItem {
@@ -13,7 +13,7 @@ interface BoardItem {
 }
 
 export const Dashboard: React.FC = () => {
-  const { setCurrentBoardId } = useUIStore();
+  const { setCurrentBoardId, fitViewportToContent } = useUIStore();
   const { loadBoard } = useBoardStore();
 
   const [boards, setBoards] = useState<BoardItem[]>([]);
@@ -58,6 +58,7 @@ export const Dashboard: React.FC = () => {
       if (response.ok) {
         await loadBoard(id);
         setCurrentBoardId(id);
+        fitViewportToContent();
       }
     } catch (err) {
       console.error(err);
@@ -130,9 +131,9 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Rename board submit
-  const handleRenameSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Rename board
+  const handleRenameBoard = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!renamingBoardId || !renameInput.trim()) return;
     try {
       const response = await fetch(`${API_BASE_URL}/api/boards/${renamingBoardId}`, {
@@ -142,6 +143,7 @@ export const Dashboard: React.FC = () => {
       });
       if (response.ok) {
         setRenamingBoardId(null);
+        setRenameInput('');
         fetchBoards();
       }
     } catch (err) {
@@ -183,6 +185,64 @@ export const Dashboard: React.FC = () => {
           <Plus size={16} />
           <span>Create Board</span>
         </button>
+      </div>
+
+      {/* Quick Template Starters Banner */}
+      <div className="max-w-6xl mx-auto mb-8 bg-gradient-to-r from-brand-600/10 via-indigo-500/10 to-purple-500/10 border border-brand-500/20 dark:border-brand-500/30 rounded-3xl p-6 select-none">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+              <Sparkles size={16} className="text-brand-500" />
+              <span>Start with a template</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-zinc-400">Launch a pre-formatted canvas with Retrospectives, Mind Maps, Kanban, or SWOT matrices</p>
+          </div>
+          <button
+            onClick={() => handleCreateBoard()}
+            className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline"
+          >
+            Blank Canvas →
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { id: 'retro', title: 'Sprint Retro', icon: <LayoutGrid size={18} className="text-emerald-500" />, desc: '3 Columns' },
+            { id: 'mindmap', title: 'Mind Map', icon: <GitBranch size={18} className="text-brand-500" />, desc: 'Radial Tree' },
+            { id: 'kanban', title: 'Kanban Board', icon: <Trello size={18} className="text-purple-500" />, desc: 'Task Stages' },
+            { id: 'swot', title: 'SWOT Matrix', icon: <ShieldAlert size={18} className="text-amber-500" />, desc: 'Strategy Grid' }
+          ].map((tmpl) => (
+            <button
+              key={tmpl.id}
+              onClick={async () => {
+                const id = Math.random().toString(36).substring(2, 9);
+                const title = `${tmpl.title} - ${new Date().toLocaleDateString()}`;
+                const res = await fetch(`${API_BASE_URL}/api/boards`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id, title })
+                });
+                if (res.ok) {
+                  await loadBoard(id);
+                  setCurrentBoardId(id);
+                  fitViewportToContent();
+                  useUIStore.getState().setTemplateModalOpen(true);
+                }
+              }}
+              className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:border-brand-500 dark:hover:border-brand-500 rounded-2xl transition-all hover:scale-[1.02] text-left group shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-slate-50 dark:bg-zinc-850 rounded-xl">
+                  {tmpl.icon}
+                </div>
+                <span className="text-[9px] font-bold text-slate-400">{tmpl.desc}</span>
+              </div>
+              <div className="font-bold text-xs text-slate-800 dark:text-zinc-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                {tmpl.title}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Control Filters Bar */}
@@ -238,6 +298,7 @@ export const Dashboard: React.FC = () => {
                 onClick={async () => {
                   await loadBoard(board.id);
                   setCurrentBoardId(board.id);
+                  fitViewportToContent();
                 }}
                 className="group relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-2xl overflow-hidden hover:shadow-xl hover:border-slate-300 dark:hover:border-zinc-700 transition-all cursor-pointer flex flex-col h-48 select-none"
               >
@@ -315,7 +376,7 @@ export const Dashboard: React.FC = () => {
       {renamingBoardId && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <form
-            onSubmit={handleRenameSubmit}
+            onSubmit={handleRenameBoard}
             className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl w-full max-w-sm flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200"
           >
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-zinc-800">

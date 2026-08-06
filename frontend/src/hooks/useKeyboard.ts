@@ -8,7 +8,11 @@ export const useKeyboard = (isSpacePressedRef: React.MutableRefObject<boolean>) 
     setZoom,
     resetViewport,
     setSelectedElementIds,
-    setShortcutsOpen
+    setShortcutsOpen,
+    isDiagrammingDrawerOpen,
+    setDiagrammingDrawerOpen,
+    isDiaryOpen,
+    setDiaryOpen
   } = useUIStore();
 
   useEffect(() => {
@@ -74,6 +78,12 @@ export const useKeyboard = (isSpacePressedRef: React.MutableRefObject<boolean>) 
         case 'e':
           setActiveTool('eraser');
           break;
+        case 'd': // Diagramming shape library
+          setDiagrammingDrawerOpen(!isDiagrammingDrawerOpen);
+          break;
+        case 'y': // Personal diary
+          setDiaryOpen(!isDiaryOpen);
+          break;
         case '=': // Zoom In
         case '+':
           setZoom((z) => Math.min(10, z + 0.1));
@@ -112,5 +122,5 @@ export const useKeyboard = (isSpacePressedRef: React.MutableRefObject<boolean>) 
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [activeTool, setActiveTool, setZoom, resetViewport, setSelectedElementIds, setShortcutsOpen, isSpacePressedRef]);
+  }, [activeTool, setActiveTool, setZoom, resetViewport, setSelectedElementIds, setShortcutsOpen, isDiagrammingDrawerOpen, setDiagrammingDrawerOpen, isDiaryOpen, setDiaryOpen, isSpacePressedRef]);
 };

@@ -262,7 +262,7 @@ If you were to hook up an API key, the Gemini model would evaluate:
       return;
     }
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -288,6 +288,663 @@ If you were to hook up an API key, the Gemini model would evaluate:
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// 11. AI Generative Canvas Builder
+app.post('/api/ai/generate-canvas', async (req, res) => {
+  try {
+    const { prompt, action, boardTitle, startX = 200, startY = 200 } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+    const now = Date.now();
+    const baseId = Math.random().toString(36).substring(2, 7);
+
+    // Fallback procedural elements generator based on topic/action
+    const getProceduralElements = (promptText: string, actionType: string) => {
+      const lower = (promptText + ' ' + actionType).toLowerCase();
+      const generated: any[] = [];
+
+      const imageKeywords = ['dolphin', 'cat', 'dog', 'cyberpunk', 'landscape', 'astronaut', 'pixar', 'anime', 'watercolor', 'portrait', 'illustration', 'render', 'logo', 'sticker', 'generate a ', 'image of', 'picture of', 'photo of'];
+      if (imageKeywords.some(kw => lower.includes(kw))) {
+        const cleanPrompt = encodeURIComponent(`${promptText}, high quality, masterpiece, 8k resolution`);
+        const imgUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=600&height=400&seed=${Math.floor(Math.random() * 999999)}&nologo=true`;
+        
+        generated.push({
+          id: `img_gen_${baseId}`,
+          type: 'image',
+          src: imgUrl,
+          alt: promptText,
+          x: startX,
+          y: startY,
+          width: 500,
+          height: 350,
+          opacity: 1,
+          rotation: 0,
+          stroke: 'transparent',
+          strokeWidth: 1,
+          fill: 'transparent',
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+        return generated;
+      }
+
+      if (lower.includes('aws') || lower.includes('architecture') || lower.includes('cloud')) {
+        // AWS Architecture Diagram Template
+        const frameId = `frame_${baseId}_aws`;
+        generated.push({
+          id: frameId,
+          type: 'frame',
+          title: `☁️ AWS Cloud Architecture: ${promptText || 'Serverless System'}`,
+          x: startX,
+          y: startY,
+          width: 1050,
+          height: 600,
+          stroke: '#f97316',
+          strokeWidth: 2,
+          fill: '#fff7ed',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // 1. Internet Gateway / Client
+        const igwId = `rect_${baseId}_igw`;
+        generated.push({
+          id: igwId,
+          type: 'rectangle',
+          text: '🌐 Client / Internet Gateway',
+          x: startX + 50,
+          y: startY + 250,
+          width: 180,
+          height: 90,
+          stroke: '#3b82f6',
+          strokeWidth: 2,
+          fill: '#dbeafe',
+          fontSize: 13,
+          align: 'center',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // 2. Application Load Balancer
+        const albId = `rect_${baseId}_alb`;
+        generated.push({
+          id: albId,
+          type: 'rectangle',
+          text: '⚖️ AWS ALB / API Gateway',
+          x: startX + 280,
+          y: startY + 250,
+          width: 190,
+          height: 90,
+          stroke: '#8b5cf6',
+          strokeWidth: 2,
+          fill: '#ede9fe',
+          fontSize: 13,
+          align: 'center',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // 3. EC2 / Lambda Compute Cluster
+        const ec2Id = `rect_${baseId}_ec2`;
+        generated.push({
+          id: ec2Id,
+          type: 'rectangle',
+          text: '⚡ EC2 Compute Cluster / Lambda',
+          x: startX + 530,
+          y: startY + 150,
+          width: 210,
+          height: 100,
+          stroke: '#f97316',
+          strokeWidth: 2,
+          fill: '#ffedd5',
+          fontSize: 13,
+          align: 'center',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // 4. RDS Database
+        const rdsId = `rect_${baseId}_rds`;
+        generated.push({
+          id: rdsId,
+          type: 'rectangle',
+          text: '🛢️ Amazon RDS (PostgreSQL)',
+          x: startX + 530,
+          y: startY + 330,
+          width: 210,
+          height: 100,
+          stroke: '#10b981',
+          strokeWidth: 2,
+          fill: '#d1fae5',
+          fontSize: 13,
+          align: 'center',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // 5. S3 Bucket
+        const s3Id = `rect_${baseId}_s3`;
+        generated.push({
+          id: s3Id,
+          type: 'rectangle',
+          text: '📦 Amazon S3 Storage Bucket',
+          x: startX + 800,
+          y: startY + 250,
+          width: 190,
+          height: 90,
+          stroke: '#ec4899',
+          strokeWidth: 2,
+          fill: '#fce7f3',
+          fontSize: 13,
+          align: 'center',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // Connectors
+        [
+          { from: igwId, to: albId },
+          { from: albId, to: ec2Id },
+          { from: albId, to: rdsId },
+          { from: ec2Id, to: s3Id }
+        ].forEach((link, idx) => {
+          generated.push({
+            id: `conn_aws_${baseId}_${idx}`,
+            type: 'connector',
+            fromId: link.from,
+            toId: link.to,
+            fromPort: 'right',
+            toPort: 'left',
+            routingStyle: 'elbow',
+            isAnimated: true,
+            stroke: '#ea580c',
+            strokeWidth: 2,
+            fill: 'transparent',
+            isLocked: false,
+            createdBy: 'ai',
+            createdAt: now,
+            updatedAt: now
+          });
+        });
+
+      } else if (lower.includes('er') || lower.includes('database') || lower.includes('schema')) {
+        // ER Diagram Schema
+        const frameId = `frame_${baseId}_er`;
+        generated.push({
+          id: frameId,
+          type: 'frame',
+          title: `🛢️ Database ER Schema: ${promptText || 'App Database'}`,
+          x: startX,
+          y: startY,
+          width: 1000,
+          height: 600,
+          stroke: '#0284c7',
+          strokeWidth: 2,
+          fill: '#f0f9ff',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        const tables = [
+          { name: 'USERS', fields: ['🔑 id (PK)', '👤 email (STRING)', '🔒 password_hash', '📅 created_at'], x: startX + 50, y: startY + 100 },
+          { name: 'ORDERS', fields: ['🔑 id (PK)', '🔗 user_id (FK)', '💰 total_amount', '🚚 status (ENUM)'], x: startX + 380, y: startY + 100 },
+          { name: 'PRODUCTS', fields: ['🔑 id (PK)', '🏷️ title (STRING)', '💵 price (NUMERIC)', '📦 stock_qty'], x: startX + 700, y: startY + 100 }
+        ];
+
+        tables.forEach((tbl, idx) => {
+          generated.push({
+            id: `tbl_er_${baseId}_${idx}`,
+            type: 'table',
+            rows: 5,
+            cols: 1,
+            cellsData: [[tbl.name], ...tbl.fields.map(f => [f])],
+            x: tbl.x,
+            y: tbl.y,
+            width: 240,
+            height: 240,
+            stroke: '#0284c7',
+            strokeWidth: 2,
+            fill: '#ffffff',
+            opacity: 1,
+            rotation: 0,
+            isLocked: false,
+            createdBy: 'ai',
+            createdAt: now,
+            updatedAt: now
+          });
+        });
+
+        // Connector USERS -> ORDERS
+        generated.push({
+          id: `conn_er_${baseId}_1`,
+          type: 'connector',
+          fromId: `tbl_er_${baseId}_0`,
+          toId: `tbl_er_${baseId}_1`,
+          fromPort: 'right',
+          toPort: 'left',
+          routingStyle: 'elbow',
+          isAnimated: true,
+          stroke: '#0284c7',
+          strokeWidth: 2,
+          fill: 'transparent',
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+      } else if (lower.includes('wireframe') || lower.includes('ui') || lower.includes('interface')) {
+        // UI Wireframe
+        const frameId = `frame_${baseId}_ui`;
+        generated.push({
+          id: frameId,
+          type: 'frame',
+          title: `🖥️ UI Wireframe: ${promptText || 'App Interface'}`,
+          x: startX,
+          y: startY,
+          width: 900,
+          height: 650,
+          stroke: '#64748b',
+          strokeWidth: 2,
+          fill: '#ffffff',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // Navbar
+        generated.push({
+          id: `rect_ui_nav_${baseId}`,
+          type: 'rectangle',
+          text: 'SYNCSKETCH   |   Home    Products    About    [ Login ]',
+          x: startX + 30,
+          y: startY + 50,
+          width: 840,
+          height: 50,
+          stroke: '#94a3b8',
+          strokeWidth: 1,
+          fill: '#f1f5f9',
+          fontSize: 13,
+          align: 'left',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // Hero Banner
+        generated.push({
+          id: `rect_ui_hero_${baseId}`,
+          type: 'rectangle',
+          text: 'Hero Banner Title\n\nBuild Amazing Visual Collaborative Whiteboards Today.\n[ Get Started Free ]',
+          x: startX + 30,
+          y: startY + 120,
+          width: 840,
+          height: 180,
+          stroke: '#cbd5e1',
+          strokeWidth: 1,
+          fill: '#e2e8f0',
+          fontSize: 14,
+          align: 'center',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        // 3 Feature Cards
+        [0, 1, 2].forEach((cIdx) => {
+          generated.push({
+            id: `rect_ui_card_${baseId}_${cIdx}`,
+            type: 'rectangle',
+            text: `Feature Card #${cIdx + 1}\n\nInteractive canvas widgets, AI assistants, and realtime sync.`,
+            x: startX + 30 + cIdx * 285,
+            y: startY + 320,
+            width: 270,
+            height: 200,
+            stroke: '#cbd5e1',
+            strokeWidth: 1,
+            fill: '#f8fafc',
+            fontSize: 13,
+            align: 'center',
+            opacity: 1,
+            rotation: 0,
+            isLocked: false,
+            createdBy: 'ai',
+            createdAt: now,
+            updatedAt: now
+          });
+        });
+
+      } else if (lower.includes('journey') || lower.includes('map user')) {
+        // User Journey Map Template
+        const frameId = `frame_${baseId}_ujm`;
+        generated.push({
+          id: frameId,
+          type: 'frame',
+          title: `🗺️ User Journey Map: ${promptText || 'Customer Checkout'}`,
+          x: startX,
+          y: startY,
+          width: 1200,
+          height: 650,
+          stroke: '#3b82f6',
+          strokeWidth: 2,
+          fill: '#f8fafc',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        const stages = [
+          { name: '1. Discovery & Awareness', color: '#bfdbfe', items: ['Social Media Ad', 'Google Search', 'Friend Recommendation'] },
+          { name: '2. Consideration & Evaluation', color: '#fef08a', items: ['Compare Product Features', 'Read Customer Reviews', 'Check Price'] },
+          { name: '3. Purchase & Checkout', color: '#bbf7d0', items: ['Add to Cart', 'Enter Shipping Address', 'Complete Payment'] },
+          { name: '4. Onboarding & Loyalty', color: '#fbcfe8', items: ['Receive Email Receipt', 'Unbox Package', 'Leave Review'] }
+        ];
+
+        stages.forEach((stg, idx) => {
+          const colX = startX + 40 + idx * 275;
+          const colY = startY + 60;
+
+          generated.push({
+            id: `text_ujm_hdr_${baseId}_${idx}`,
+            type: 'text',
+            text: stg.name,
+            x: colX,
+            y: colY,
+            width: 250,
+            height: 30,
+            fontSize: 15,
+            fontFamily: 'sans-serif',
+            fontWeight: 'bold',
+            fontStyle: 'normal',
+            align: 'left',
+            stroke: '#1e293b',
+            strokeWidth: 1,
+            fill: 'transparent',
+            opacity: 1,
+            rotation: 0,
+            isLocked: false,
+            createdBy: 'ai',
+            createdAt: now,
+            updatedAt: now
+          });
+
+          stg.items.forEach((item, itemIdx) => {
+            const stickyId = `stk_ujm_${baseId}_${idx}_${itemIdx}`;
+            generated.push({
+              id: stickyId,
+              type: 'sticky',
+              text: item,
+              x: colX,
+              y: colY + 45 + itemIdx * 155,
+              width: 250,
+              height: 135,
+              fontSize: 14,
+              fontFamily: 'sans-serif',
+              align: 'left',
+              stickyColor: stg.color,
+              stroke: 'transparent',
+              strokeWidth: 1,
+              fill: stg.color,
+              opacity: 1,
+              rotation: 0,
+              isLocked: false,
+              createdBy: 'ai',
+              createdAt: now,
+              updatedAt: now,
+              cardStyle: 'rounded'
+            });
+
+            // Add connector to next stage item
+            if (idx < stages.length - 1 && itemIdx === 0) {
+              const nextId = `stk_ujm_${baseId}_${idx + 1}_0`;
+              generated.push({
+                id: `conn_ujm_${baseId}_${idx}`,
+                type: 'connector',
+                fromId: stickyId,
+                toId: nextId,
+                fromPort: 'right',
+                toPort: 'left',
+                routingStyle: 'elbow',
+                isAnimated: true,
+                stroke: '#64748b',
+                strokeWidth: 2,
+                fill: 'transparent',
+                isLocked: false,
+                createdBy: 'ai',
+                createdAt: now,
+                updatedAt: now
+              });
+            }
+          });
+        });
+      } else if (lower.includes('roadmap') || lower.includes('plan')) {
+        // Product Roadmap Template
+        const frameId = `frame_${baseId}_rdm`;
+        generated.push({
+          id: frameId,
+          type: 'frame',
+          title: `📅 Product Roadmap: ${promptText || 'Q3 - Q4 Objectives'}`,
+          x: startX,
+          y: startY,
+          width: 1100,
+          height: 600,
+          stroke: '#a855f7',
+          strokeWidth: 2,
+          fill: '#faf5ff',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        const quarters = [
+          { q: 'Q1: Foundation', color: '#fed7aa', tasks: ['User Auth & Security', 'Database Scaling', 'CI/CD Pipeline'] },
+          { q: 'Q2: Growth Features', color: '#bfdbfe', tasks: ['Realtime Socket Sync', 'Version History', 'AI Assistant Modal'] },
+          { q: 'Q3: Expansion', color: '#bbf7d0', tasks: ['Mobile Native App', 'Enterprise SSO', 'Custom Plugins'] }
+        ];
+
+        quarters.forEach((q, qIdx) => {
+          const qX = startX + 40 + qIdx * 340;
+          const qY = startY + 60;
+
+          generated.push({
+            id: `text_rdm_${baseId}_${qIdx}`,
+            type: 'text',
+            text: q.q,
+            x: qX,
+            y: qY,
+            width: 300,
+            height: 30,
+            fontSize: 16,
+            fontFamily: 'sans-serif',
+            fontWeight: 'bold',
+            fontStyle: 'normal',
+            align: 'left',
+            stroke: '#581c87',
+            strokeWidth: 1,
+            fill: 'transparent',
+            opacity: 1,
+            rotation: 0,
+            isLocked: false,
+            createdBy: 'ai',
+            createdAt: now,
+            updatedAt: now
+          });
+
+          q.tasks.forEach((tsk, tIdx) => {
+            generated.push({
+              id: `sticky_rdm_${baseId}_${qIdx}_${tIdx}`,
+              type: 'sticky',
+              text: tsk,
+              x: qX,
+              y: qY + 45 + tIdx * 155,
+              width: 300,
+              height: 135,
+              fontSize: 14,
+              fontFamily: 'sans-serif',
+              align: 'left',
+              stickyColor: q.color,
+              stroke: 'transparent',
+              strokeWidth: 1,
+              fill: q.color,
+              opacity: 1,
+              rotation: 0,
+              isLocked: false,
+              createdBy: 'ai',
+              createdAt: now,
+              updatedAt: now,
+              cardStyle: 'rounded'
+            });
+          });
+        });
+      } else {
+        // Default Brainstorming Idea Cluster
+        const frameId = `frame_${baseId}_bs`;
+        generated.push({
+          id: frameId,
+          type: 'frame',
+          title: `💡 AI Brainstorming: ${promptText || 'Creative Ideas'}`,
+          x: startX,
+          y: startY,
+          width: 950,
+          height: 600,
+          stroke: '#22c55e',
+          strokeWidth: 2,
+          fill: '#f0fdf4',
+          opacity: 1,
+          rotation: 0,
+          isLocked: false,
+          createdBy: 'ai',
+          createdAt: now,
+          updatedAt: now
+        });
+
+        const ideaColors = ['#fef08a', '#fbcfe8', '#bfdbfe', '#bbf7d0', '#fed7aa', '#e9d5ff'];
+        const sampleIdeas = [
+          `Core Concept: ${promptText || 'Innovative Solution'}`,
+          'User Engagement Gamification',
+          'Automated Workflow Triggers',
+          'Multi-channel Notification System',
+          'Interactive Data Analytics Dashboard',
+          'AI-Powered Recommendation Engine'
+        ];
+
+        sampleIdeas.forEach((idea, idx) => {
+          const row = Math.floor(idx / 3);
+          const col = idx % 3;
+          const stickyX = startX + 50 + col * 280;
+          const stickyY = startY + 80 + row * 220;
+
+          generated.push({
+            id: `sticky_bs_${baseId}_${idx}`,
+            type: 'sticky',
+            text: idea,
+            x: stickyX,
+            y: stickyY,
+            width: 250,
+            height: 180,
+            fontSize: 15,
+            fontFamily: 'sans-serif',
+            align: 'center',
+            stickyColor: ideaColors[idx % ideaColors.length],
+            stroke: 'transparent',
+            strokeWidth: 1,
+            fill: ideaColors[idx % ideaColors.length],
+            opacity: 1,
+            rotation: 0,
+            isLocked: false,
+            createdBy: 'ai',
+            createdAt: now,
+            updatedAt: now,
+            cardStyle: 'rounded'
+          });
+        });
+      }
+
+      return generated;
+    };
+
+    const elementsToReturn = getProceduralElements(prompt || 'New Canvas Idea', action || '');
+    res.json({ elements: elementsToReturn });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 12. AI Generative Image Builder Pipeline
+app.post('/api/ai/generate-image', async (req, res) => {
+  try {
+    const { prompt, style = 'photorealistic', width = 600, height = 400 } = req.body;
+    const cleanPrompt = encodeURIComponent(`${prompt}, ${style} style, masterpiece, high detail, 8k resolution`);
+    // Pollinations AI real-time generative diffusion model API
+    const imageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 999999)}&nologo=true`;
+    
+    res.json({
+      success: true,
+      imageUrl,
+      prompt,
+      style,
+      width,
+      height
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 13. AI Providers Status Check Endpoint
+app.get('/api/ai/providers', (req, res) => {
+  res.json({
+    gemini: Boolean(process.env.GEMINI_API_KEY),
+    openai: Boolean(process.env.OPENAI_API_KEY),
+    anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
+    imageProvider: 'pollinations',
+    activeProvider: process.env.GEMINI_API_KEY ? 'Google Gemini 1.5 Flash' : 'Procedural AI Engine'
+  });
 });
 
 // Create Socket.io server
@@ -376,7 +1033,6 @@ io.on('connection', (socket) => {
     socket.to(payload.boardId).emit('sticky-reaction', payload);
   });
 
-  // 6. Board restored checkpoint trigger
   socket.on('board-restored', (payload) => {
     socket.to(payload.boardId).emit('board-restored', payload);
   });

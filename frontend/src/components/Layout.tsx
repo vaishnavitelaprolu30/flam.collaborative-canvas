@@ -4,13 +4,32 @@ import {
   Type, StickyNote, Eraser, Share2, Undo2, Redo2, HelpCircle, Smile,
   Sun, Moon, Plus, Maximize, Map, X, Copy, 
   Trash2, Layers, BringToFront, SendToBack,
-  ChevronDown, Cpu, Clock, Folder, ArrowLeft, Sparkles,
-  Star, FileText, Check, Loader2, Settings, Frame, Menu
+  ChevronDown, ChevronRight, Cpu, Clock, Folder, ArrowLeft, Sparkles,
+  Star, FileText, Check, Loader2, Settings, Frame, Play,
+  LayoutGrid, Download, Search, Zap, Table, MessageSquare, GitBranch, Home, Heart, PanelLeft, BookOpen,
+  Highlighter, Wand2, Lasso,
+  Workflow
 } from 'lucide-react';
 import { useUIStore } from '../store/useUIStore';
 import { useBoardStore } from '../store/useBoardStore';
 import { usePresenceStore } from '../store/usePresenceStore';
 import { EmojiPicker } from './EmojiPicker';
+import { TemplateModal } from './TemplateModal';
+import { CommandPalette } from './CommandPalette';
+import { ExportModal } from './ExportModal';
+import { FrameNavigationDrawer } from './FrameNavigationDrawer';
+import { AIAssistantModal } from './AIAssistantModal';
+import { AIImageModal } from './AIImageModal';
+import { FileImportModal } from './FileImportModal';
+import { WebResourceModal } from './WebResourceModal';
+import { DiagrammingShapesDrawer } from './DiagrammingShapesDrawer';
+import { PresentationPlayer } from './PresentationPlayer';
+import { StylesDrawer } from './StylesDrawer';
+import { SlideLayoutsModal } from './SlideLayoutsModal';
+import { MermaidCodeModal } from './MermaidCodeModal';
+import { DiaryDrawer } from './DiaryDrawer';
+import { SLIDE_LAYOUTS, SlideLayoutDef, buildSlide } from '../slides/slideLayouts';
+import { SlidePreview } from '../slides/SlidePreview';
 import { ToolType, CanvasElement, TextElement } from '../types/canvas';
 import { API_BASE_URL } from '../config';
 
@@ -20,11 +39,21 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileToolbarOpen, setMobileToolbarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showTopBanner, setShowTopBanner] = useState(true);
+  const [frameFlyoutTab, setFrameFlyoutTab] = useState<'size' | 'layouts'>('size');
+  const [isAIAssistantModalOpen, setIsAIAssistantModalOpen] = useState(false);
+  const [isAIImageModalOpen, setIsAIImageModalOpen] = useState(false);
+  const [isFileImportModalOpen, setIsFileImportModalOpen] = useState(false);
+  const [isWebResourceModalOpen, setIsWebResourceModalOpen] = useState(false);
   const {
     activeTool, setActiveTool,
     selectedElementIds, setSelectedElementIds,
     zoom, setZoom,
-    theme, setTheme,
+    resolvedTheme, setTheme,
+    isPresentationOpen, setPresentationOpen,
+    isStylesDrawerOpen, setStylesDrawerOpen,
+    isSlideLayoutsModalOpen, setSlideLayoutsModalOpen,
     isMinimapOpen, setMinimapOpen,
     isShortcutsOpen, setShortcutsOpen,
     isShareOpen, setShareOpen,
@@ -50,7 +79,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     gridType, setGridType,
     snapToGrid, setSnapToGrid,
     isFavorite, setFavorite,
-    activeExpandableMenu, setActiveExpandableMenu
+    activeExpandableMenu, setActiveExpandableMenu,
+    isTemplateModalOpen, setTemplateModalOpen,
+    isExportModalOpen, setExportModalOpen,
+    isCommandPaletteOpen, setCommandPaletteOpen,
+    isFrameDrawerOpen, setFrameDrawerOpen,
+    isDiagrammingDrawerOpen, setDiagrammingDrawerOpen,
+    isMermaidModalOpen, setMermaidModalOpen,
+    isDiaryOpen, setDiaryOpen,
+    fitViewportToContent
   } = useUIStore();
 
   const { 
@@ -77,7 +114,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [activeAvatarMenuId, setActiveAvatarMenuId] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState('');
 
-  const handleCreateFrame = (presetName: string, w: number, h: number) => {
+  const handleCreateFrame = (presetName: string, w: number, h: number, frameType?: string) => {
     const center = {
       x: (window.innerWidth / 2 - pan.x) / zoom - w / 2,
       y: (window.innerHeight / 2 - pan.y) / zoom - h / 2
@@ -86,12 +123,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const newFrame: any = {
       id: Math.random().toString(36).substring(2, 9),
       type: 'frame',
-      title: `${presetName}`,
+      title: presetName,
+      frameType: frameType || 'preset',
       x: Math.round(center.x),
       y: Math.round(center.y),
       width: w,
       height: h,
-      stroke: '#94a3b8',
+      stroke: '#3b82f6',
       strokeWidth: 2,
       fill: 'transparent',
       opacity: 1,
@@ -104,6 +142,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     addElement(newFrame);
     setSelectedElementIds([newFrame.id]);
+    setActiveExpandableMenu(null);
+    setActiveTool('select');
+  };
+
+  /** Drops a prebuilt slide (frame + contents) at the centre of the viewport. */
+  const handleInsertSlideLayout = (layout: SlideLayoutDef) => {
+    const originX = (window.innerWidth / 2 - pan.x) / zoom - layout.frameSize.width / 2;
+    const originY = (window.innerHeight / 2 - pan.y) / zoom - layout.frameSize.height / 2;
+
+    const created = buildSlide(layout, Math.round(originX), Math.round(originY));
+    useBoardStore.getState().addElements(created);
+
+    setSelectedElementIds([created[0].id]);
     setActiveExpandableMenu(null);
     setActiveTool('select');
   };
@@ -177,7 +228,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
-  // 1. Keyboard Shortcut Cmd/Ctrl + S
+  // 1. Keyboard Shortcut Cmd/Ctrl + S & Cmd/Ctrl + K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -185,11 +236,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         if (currentBoardId) {
           saveBoard(currentBoardId);
         }
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentBoardId, saveBoard]);
+  }, [currentBoardId, saveBoard, setCommandPaletteOpen]);
 
   // 2. Version History states
   const [versions, setVersions] = useState<any[]>([]);
@@ -291,23 +345,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
-  // Theme Syncing
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else if (theme === 'light') {
-      root.classList.remove('dark');
-    } else {
-      // System
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      if (systemTheme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    }
-  }, [theme]);
+  // Theme syncing is handled once in App.tsx so the dashboard and the board
+  // stay in agreement; Layout only needs to read `resolvedTheme`.
 
   // Active presence collaborators list (Local user first)
   const allCollaborators = [
@@ -337,10 +376,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { type: 'sticky', label: 'Sticky Note', icon: <StickyNote size={18} />, shortcut: 'S' },
     { type: 'text', label: 'Text', icon: <Type size={18} />, shortcut: 'T' },
     { type: 'rectangle', label: 'Shapes', icon: <Square size={18} />, shortcut: 'R' },
+    { type: 'diagram', label: 'Diagramming Shapes', icon: <Workflow size={18} />, shortcut: 'D' },
+    { type: 'diary', label: 'My Diary', icon: <BookOpen size={18} />, shortcut: 'Y' },
     { type: 'line', label: 'Lines / Pen', icon: <Pencil size={18} />, shortcut: 'P' },
     { type: 'frame', label: 'Frame', icon: <Frame size={18} />, shortcut: 'F' },
+    { type: 'mindmap', label: 'Mind Map', icon: <GitBranch size={18} />, shortcut: 'M' },
+    { type: 'comment', label: 'Comment Pin', icon: <MessageSquare size={18} />, shortcut: 'N' },
+    { type: 'table', label: 'Table Widget', icon: <Table size={18} />, shortcut: 'W' },
     { type: 'emoji', label: 'Emoji', icon: <Smile size={18} />, shortcut: 'J' },
     { type: 'connector', label: 'Connector', icon: <ChevronDown size={18} className="-rotate-90" />, shortcut: 'C' },
+    { type: 'laser', label: 'Laser Pointer', icon: <Zap size={18} />, shortcut: 'L' },
     { type: 'eraser', label: 'Eraser', icon: <Eraser size={18} />, shortcut: 'E' },
   ];
 
@@ -500,17 +545,44 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </aside>
       )}
-            {/* 1. TOP BAR */}
-      <header className="absolute top-4 left-4 right-4 z-30 h-14 flex items-center justify-between floating-panel rounded-2xl px-4 select-none">
+            {/* 0. Top announcement banner */}
+      {showTopBanner && (
+        <div className="absolute top-0 left-0 right-0 z-40 bg-blue-600 text-white text-xs font-semibold px-4 py-2 flex items-center justify-between shadow-md select-none">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            <span>Press D for the shape library, or F to add a slide frame.</span>
+            <button
+              onClick={() => setShortcutsOpen(true)}
+              className="underline font-bold hover:text-blue-100 transition-colors ml-1"
+            >
+              All shortcuts
+            </button>
+          </div>
+          <button 
+            onClick={() => setShowTopBanner(false)} 
+            className="hover:opacity-80 p-0.5 rounded text-white"
+            title="Dismiss banner"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* 1. TOP BAR */}
+      {/* On narrow screens the action cluster used to overflow and become
+          unreachable — Share, Templates and Ask AI simply vanished. Scrolling
+          horizontally keeps every control available at any width. */}
+      <header className={`absolute ${showTopBanner ? 'top-14 sm:top-12' : 'top-4'} left-2 right-2 sm:left-4 sm:right-4 z-30 h-14 flex items-center justify-between gap-2 floating-panel rounded-2xl px-2 sm:px-4 select-none transition-all duration-200 overflow-x-auto scrollbar-none`}>
         {/* Left: Logo & Board Title */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setMobileToolbarOpen(!mobileToolbarOpen)}
-            className="sm:hidden p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-            title="Toggle Toolbar"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl text-slate-600 dark:text-zinc-300 transition-colors"
+            title="Toggle Sidebar Navigation"
           >
-            <Menu size={16} />
+            <PanelLeft size={18} />
           </button>
+          
           <button
             onClick={() => setCurrentBoardId(null)}
             className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-1"
@@ -701,6 +773,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Action buttons */}
           <div className="flex items-center gap-1.5">
+            {/* Play Presentation Mode Button (Matching Screenshots 1-5 top right ▶ icon) */}
+            <button
+              onClick={() => setPresentationOpen(true)}
+              className="p-2 bg-slate-100 dark:bg-zinc-800 hover:bg-blue-600 hover:text-white text-slate-700 dark:text-zinc-300 rounded-xl transition-all shadow-sm flex items-center justify-center group"
+              title="Play Presentation Mode (▶)"
+            >
+              <Play size={14} className="fill-current text-slate-700 dark:text-zinc-300 group-hover:text-white" />
+            </button>
+
+            {/* Template Library button */}
+            <button
+              onClick={() => setTemplateModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-800 dark:text-zinc-200 rounded-xl text-xs font-semibold shadow-sm transition-all"
+              title="Open template library"
+            >
+              <LayoutGrid size={13} className="text-emerald-500" />
+              <span className="hidden lg:inline">Templates</span>
+            </button>
+
             {/* Ask AI button */}
             <button 
               onClick={() => {
@@ -712,10 +803,41 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   ? 'bg-brand-600 text-white hover:bg-brand-700'
                   : 'bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-770 dark:text-zinc-300'
               }`}
-              title="Ask AI (Cmd+K)"
+              title="Ask AI"
             >
               <Sparkles size={13} className="text-brand-500 animate-pulse" />
               <span className="hidden lg:inline">Ask AI</span>
+            </button>
+
+            {/* Export button */}
+            <button
+              onClick={() => setExportModalOpen(true)}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+              title="Export Canvas (PNG / SVG / JSON)"
+            >
+              <Download size={16} />
+            </button>
+
+            {/* Command Palette button */}
+            <button
+              onClick={() => setCommandPaletteOpen(true)}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+              title="Command Palette (Cmd+K)"
+            >
+              <Search size={16} />
+            </button>
+
+            {/* Frame Index / Presentation Drawer button */}
+            <button
+              onClick={() => setFrameDrawerOpen(!isFrameDrawerOpen)}
+              className={`p-2 rounded-xl transition-colors ${
+                isFrameDrawerOpen
+                  ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/20 dark:text-brand-400'
+                  : 'hover:bg-slate-100 dark:hover:bg-zinc-800/80 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+              title="Frames & Slides Index"
+            >
+              <Frame size={16} />
             </button>
 
             {/* Share button */}
@@ -811,11 +933,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             {/* Theme Toggle */}
             <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
               className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800/80 rounded-xl text-slate-600 dark:text-zinc-300 transition-colors"
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} Mode`}
             >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              {resolvedTheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
 
             {/* Help Shortcuts toggle */}
@@ -830,14 +952,42 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
+      {/* Mobile tool drawer handle.
+          Below the sm breakpoint the rail is parked off-screen; without this
+          there was no way to bring it back, leaving phones with no tools at
+          all. Hidden from sm upward, where the rail is always visible. */}
+      <button
+        onClick={() => setMobileToolbarOpen(!mobileToolbarOpen)}
+        aria-label={mobileToolbarOpen ? 'Hide tools' : 'Show tools'}
+        aria-expanded={mobileToolbarOpen}
+        className={`sm:hidden fixed bottom-24 z-40 w-12 h-12 rounded-full bg-brand-500 text-white shadow-xl shadow-brand-500/30 flex items-center justify-center active:scale-95 transition-all duration-200 ${
+          mobileToolbarOpen ? 'left-[4.75rem]' : 'left-4'
+        }`}
+      >
+        {mobileToolbarOpen ? <X size={20} /> : <Pencil size={20} />}
+      </button>
+
       {/* 2. LEFT FLOATING TOOLBAR */}
       <div className={`fixed sm:absolute left-4 top-1/2 -translate-y-1/2 z-30 flex items-center select-none pointer-events-none transition-transform duration-200 ${mobileToolbarOpen ? 'translate-x-0' : '-translate-x-32 sm:translate-x-0'}`}>
         <nav className="pointer-events-auto flex flex-col gap-1.5 p-1.5 floating-panel rounded-2xl relative max-h-[80vh] overflow-y-auto">
+          {/* AI assistant button */}
+          <button
+            onClick={() => setIsAIAssistantModalOpen(true)}
+            className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 hover:scale-105 active:scale-95 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 transition-all mb-1 group"
+            title="AI Assistant ✨ (Ask AI)"
+          >
+            <Sparkles size={18} className="animate-pulse group-hover:rotate-12 transition-transform" />
+          </button>
           {tools.map((t) => {
             const isActive = 
               (t.type === activeTool) ||
               (t.type === 'rectangle' && ['rectangle', 'rounded-rectangle', 'ellipse', 'triangle', 'diamond', 'hexagon', 'star'].includes(activeTool)) ||
-              (t.type === 'line' && ['pencil', 'line', 'arrow'].includes(activeTool));
+              // Every implement in the pen flyout should keep the rail button lit,
+              // otherwise picking one looks like nothing happened.
+              (t.type === 'line' &&
+                ['pencil', 'line', 'arrow', 'highlighter', 'smart-draw', 'eraser', 'lasso'].includes(
+                  activeTool
+                ));
             
             return (
               <button
@@ -853,8 +1003,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       setActiveExpandableMenu(null);
                     }
                   } else if (t.type === 'rectangle') {
+                    // Draws plain rectangles. The shape library lives behind its
+                    // own Diagramming button below, not behind this one.
                     setActiveTool('rectangle');
                     setActiveExpandableMenu(activeExpandableMenu === 'shapes' ? null : 'shapes');
+                  } else if (t.type === 'diagram') {
+                    setActiveTool('select');
+                    setActiveExpandableMenu(null);
+                    setDiagrammingDrawerOpen(!isDiagrammingDrawerOpen);
+                  } else if (t.type === 'diary') {
+                    setActiveTool('select');
+                    setActiveExpandableMenu(null);
+                    setDiaryOpen(!isDiaryOpen);
                   } else if (t.type === 'line') {
                     setActiveTool('pencil');
                     setActiveExpandableMenu(activeExpandableMenu === 'lines' ? null : 'lines');
@@ -864,6 +1024,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   } else if (t.type === 'sticky') {
                     setActiveTool('sticky');
                     setActiveExpandableMenu(activeExpandableMenu === 'sticky-colors' ? null : 'sticky-colors');
+                  } else if (t.type === 'image') {
+                    setIsAIImageModalOpen(true);
+                  } else if (t.type === 'mindmap') {
+                    // Trigger AI Mind Map generation
+                    useBoardStore.getState().addElement({
+                      id: `frame_mm_${Math.random().toString(36).substring(2, 9)}`,
+                      type: 'frame',
+                      title: '🧠 Mind Map: Feature Architecture',
+                      x: 200,
+                      y: 200,
+                      width: 800,
+                      height: 500,
+                      stroke: '#3b82f6',
+                      strokeWidth: 2,
+                      fill: '#eff6ff',
+                      opacity: 1,
+                      rotation: 0,
+                      isLocked: false,
+                      createdBy: 'mindmap',
+                      createdAt: Date.now(),
+                      updatedAt: Date.now()
+                    });
                   } else {
                     setActiveTool(t.type);
                     setActiveExpandableMenu(null);
@@ -935,54 +1117,200 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* 2B. Lines Submenu */}
         {activeExpandableMenu === 'lines' && (
-          <div className="pointer-events-auto ml-3 flex flex-col gap-1 p-2 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-36 font-sans">
-            <div className="text-[9px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider px-2 py-0.5 border-b border-slate-100 dark:border-zinc-850 pb-1">Select Line</div>
+          <div className="pointer-events-auto ml-3 flex flex-col items-center gap-1 p-2 bg-white/98 dark:bg-zinc-900/98 border border-slate-200 dark:border-zinc-800 shadow-2xl rounded-2xl animate-in slide-in-from-left-2 duration-100 font-sans select-none">
             {[
-              { type: 'pencil', label: 'Pen (Freehand)' },
-              { type: 'line', label: 'Straight Line' },
-              { type: 'arrow', label: 'Arrow' }
-            ].map((line) => (
+              { type: 'pencil', label: 'Pen', icon: <Pencil size={18} /> },
+              { type: 'highlighter', label: 'Highlighter', icon: <Highlighter size={18} /> },
+              { type: 'smart-draw', label: 'Smart drawing — sketch snaps to a shape', icon: <Wand2 size={18} /> },
+              { type: 'eraser-object', label: 'Eraser — whole objects', icon: <Eraser size={18} /> },
+              { type: 'eraser-stroke', label: 'Eraser — part of a stroke', icon: <Eraser size={18} className="opacity-60" /> },
+              { type: 'lasso', label: 'Lasso select', icon: <Lasso size={18} /> },
+            ].map((pen) => {
+              // The two erasers share a tool and differ only by eraserMode.
+              const isEraser = pen.type.startsWith('eraser-');
+              const mode = pen.type === 'eraser-stroke' ? 'stroke' : 'object';
+              const isActive = isEraser
+                ? activeTool === 'eraser' && eraserMode === mode
+                : activeTool === pen.type;
+
+              return (
+                <button
+                  key={pen.type}
+                  onClick={() => {
+                    if (isEraser) {
+                      setEraserMode(mode as 'object' | 'stroke');
+                      setActiveTool('eraser');
+                    } else {
+                      setActiveTool(pen.type as ToolType);
+                    }
+                    setSelectedElementIds([]);
+                    // The flyout deliberately stays open: you usually pick an
+                    // implement and then a colour, and closing it made the tool
+                    // look like it had not been selected at all.
+                  }}
+                  title={pen.label}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                    isActive
+                      ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/50 dark:text-brand-400'
+                      : 'text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/80'
+                  }`}
+                >
+                  {pen.icon}
+                </button>
+              );
+            })}
+
+            <div className="w-7 h-px bg-slate-200 dark:bg-zinc-800 my-1" />
+
+            {/* Ink colours */}
+            {[
+              { hex: '#facc15', name: 'Yellow' },
+              { hex: '#f87171', name: 'Red' },
+              { hex: '#4ade80', name: 'Green' },
+              { hex: '#60a5fa', name: 'Blue' },
+              { hex: '#1e293b', name: 'Ink' },
+            ].map((colour) => (
               <button
-                key={line.type}
+                key={colour.hex}
                 onClick={() => {
-                  setActiveTool(line.type as any);
-                  setActiveExpandableMenu(null);
-                  setSelectedElementIds([]);
+                  setActiveStroke(colour.hex);
+                  addRecentlyUsedColor(colour.hex);
                 }}
-                className={`w-full text-left py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
-                  activeTool === line.type
-                    ? 'bg-slate-100 dark:bg-zinc-800 text-brand-600 dark:text-brand-400 font-semibold'
-                    : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-855/60'
+                title={colour.name}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform ${
+                  activeStroke === colour.hex ? 'scale-110' : 'hover:scale-105'
                 }`}
               >
-                {line.label}
+                <span
+                  className={`w-6 h-6 rounded-full border-2 ${
+                    activeStroke === colour.hex
+                      ? 'ring-2 ring-brand-500 ring-offset-1 dark:ring-offset-zinc-900 border-white'
+                      : 'border-slate-200 dark:border-zinc-700'
+                  }`}
+                  style={{ backgroundColor: colour.hex }}
+                />
               </button>
             ))}
           </div>
         )}
 
-        {/* 2C. Frames Preset Submenu */}
+        {/* 2C. Frame flyout: size presets and slide layouts */}
         {activeExpandableMenu === 'frames' && (
-          <div className="pointer-events-auto ml-3 flex flex-col gap-1 p-2 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-44 font-sans max-h-80 overflow-y-auto scrollbar-thin">
-            <div className="text-[9px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider px-2 py-0.5 border-b border-slate-100 dark:border-zinc-855 pb-1">Preset Frames</div>
-            {[
-              { name: 'A4 Page', w: 800, h: 1130 },
-              { name: 'Letter Page', w: 850, h: 1100 },
-              { name: 'Slide (16:9)', w: 1200, h: 675 },
-              { name: 'Square (1:1)', w: 600, h: 600 },
-              { name: 'Mobile Screen', w: 390, h: 844 },
-              { name: 'Tablet Screen', w: 768, h: 1024 },
-              { name: 'Custom Frame', w: 800, h: 600 }
-            ].map((frame) => (
+          <div className="pointer-events-auto ml-3 flex flex-col gap-3 p-3 bg-white/98 dark:bg-zinc-900/98 border border-slate-200 dark:border-zinc-800 shadow-2xl rounded-2xl animate-in slide-in-from-left-2 duration-100 w-[min(18rem,calc(100vw-7rem))] font-sans select-none max-h-[70vh]">
+            {/* Size / Layouts tabs — layouts used to be reachable only from a
+                toolbar that appeared after a frame was already selected. */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-zinc-800 rounded-xl flex-shrink-0">
+              {(['size', 'layouts'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setFrameFlyoutTab(tab)}
+                  className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold capitalize transition-colors ${
+                    frameFlyoutTab === tab
+                      ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  {tab === 'size' ? 'Size' : `Layouts (${SLIDE_LAYOUTS.length})`}
+                </button>
+              ))}
+            </div>
+
+            {frameFlyoutTab === 'layouts' && (
+              <div className="flex flex-col gap-2 overflow-y-auto scrollbar-thin pr-1">
+                <div className="grid grid-cols-2 gap-2">
+                  {SLIDE_LAYOUTS.map((layout) => (
+                    <button
+                      key={layout.id}
+                      onClick={() => handleInsertSlideLayout(layout)}
+                      title={layout.description}
+                      className="group text-left border border-slate-200 dark:border-zinc-800 hover:border-blue-500 rounded-xl overflow-hidden transition-all hover:shadow-md bg-white dark:bg-zinc-950"
+                    >
+                      <div className="aspect-[65/42] bg-slate-50 dark:bg-zinc-900 overflow-hidden">
+                        <SlidePreview layout={layout} className="w-full h-full" />
+                      </div>
+                      <div className="px-2 py-1.5 text-[10px] font-bold text-slate-700 dark:text-zinc-300 group-hover:text-blue-600 truncate">
+                        {layout.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    setActiveExpandableMenu(null);
+                    setSlideLayoutsModalOpen(true);
+                  }}
+                  className="w-full py-2 mt-1 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl text-[11px] font-bold text-slate-700 dark:text-zinc-200 transition-colors flex-shrink-0"
+                >
+                  Browse all layouts
+                </button>
+              </div>
+            )}
+
+            {frameFlyoutTab === 'size' && (
+            <>
+            {/* Aspect Ratio Grid */}
+            <div className="grid grid-cols-3 gap-1.5 border-b border-slate-100 dark:border-zinc-800 pb-2.5">
+              {[
+                { name: 'Custom', w: 800, h: 600, icon: '♯' },
+                { name: 'A4', w: 800, h: 1130, icon: '📄' },
+                { name: 'Letter', w: 850, h: 1100, icon: '📄' },
+                { name: '16:9', w: 1200, h: 675, icon: '📺' },
+                { name: '4:3', w: 1000, h: 750, icon: '📺' },
+                { name: '1:1', w: 600, h: 600, icon: '🔲' },
+                { name: 'Mobile', w: 390, h: 844, icon: '📱' },
+                { name: 'Tablet', w: 768, h: 1024, icon: '📱' },
+                { name: 'Desktop', w: 1280, h: 800, icon: '🖥️' },
+              ].map((f) => (
+                <button
+                  key={f.name}
+                  onClick={() => handleCreateFrame(f.name, f.w, f.h)}
+                  className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-100 dark:border-zinc-800 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 transition-all text-[11px] font-semibold group"
+                >
+                  <span className="text-sm mb-0.5 group-hover:scale-110 transition-transform">{f.icon}</span>
+                  <span>{f.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Container Special Templates (Matching Screenshot 2) */}
+            <div className="flex flex-col gap-1">
               <button
-                key={frame.name}
-                onClick={() => handleCreateFrame(frame.name, frame.w, frame.h)}
-                className="w-full text-left py-1.5 px-2 hover:bg-slate-50 dark:hover:bg-zinc-855/60 rounded-lg text-slate-700 dark:text-zinc-300 text-xs transition-colors flex items-center justify-between"
+                onClick={() => handleCreateFrame('Slides', 650, 420, 'slides')}
+                className="w-full text-left py-2 px-2.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-800 dark:text-zinc-200 text-xs font-semibold transition-colors flex items-center gap-2 group"
               >
-                <span>{frame.name}</span>
-                <span className="text-[9px] text-slate-400">{frame.w}×{frame.h}</span>
+                <span className="p-1 bg-red-100 text-red-600 rounded-lg group-hover:scale-110 transition-transform">📕</span>
+                <span>Slides</span>
               </button>
-            ))}
+
+              <button
+                onClick={() => handleCreateFrame('Diagram', 550, 360, 'diagram')}
+                className="w-full text-left py-2 px-2.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-800 dark:text-zinc-200 text-xs font-semibold transition-colors flex items-center gap-2 group"
+              >
+                <span className="p-1 bg-orange-100 text-orange-600 rounded-lg group-hover:scale-110 transition-transform">📙</span>
+                <span>Diagram</span>
+              </button>
+
+              <button
+                onClick={() => handleCreateFrame('Engage activities', 780, 420, 'engage-activities')}
+                className="w-full text-left py-2 px-2.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-800 dark:text-zinc-200 text-xs font-semibold transition-colors flex items-center gap-2 group"
+              >
+                <span className="p-1 bg-rose-100 text-rose-600 rounded-lg group-hover:scale-110 transition-transform">📘</span>
+                <span>Engage activities</span>
+              </button>
+
+              <button
+                onClick={() => handleCreateFrame('Prototype', 420, 680, 'prototype')}
+                className="w-full text-left py-2 px-2.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-slate-800 dark:text-zinc-200 text-xs font-semibold transition-colors flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="p-1 bg-purple-100 text-purple-600 rounded-lg group-hover:scale-110 transition-transform">🟪</span>
+                  <span>Prototype</span>
+                </div>
+                <span className="text-[10px] text-slate-400">ⓘ</span>
+              </button>
+            </div>
+            </>
+            )}
           </div>
         )}
 
@@ -1040,7 +1368,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* 2E. More Tools searchable Panel */}
         {activeExpandableMenu === 'more-tools' && (
-          <div className="pointer-events-auto ml-3 flex flex-col gap-3 p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl rounded-2xl animate-in slide-in-from-left-2 duration-150 w-72 h-[400px] font-sans">
+          <div className="pointer-events-auto ml-3 flex flex-col gap-3 p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xl rounded-2xl animate-in slide-in-from-left-2 duration-150 w-[min(18rem,calc(100vw-7rem))] h-[400px] font-sans">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-2">
               <span className="font-bold text-slate-800 dark:text-zinc-205 text-sm">More Tools</span>
               <button onClick={() => setActiveExpandableMenu(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-400">
@@ -1061,16 +1389,34 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-1.5 scrollbar-thin">
               {[
-                { title: 'Diagram', desc: 'Create flowcharts & diagrams' },
-                { title: 'Table', desc: 'Organize data in structural grid' },
-                { title: 'Timeline', desc: 'Plan projects & events' },
-                { title: 'Kanban', desc: 'Track tasks using board stages' },
-                { title: 'Document', desc: 'Write structured notes & writeups' },
-                { title: 'Slides', desc: 'Design slide presentations' }
+                { title: 'Prototype', desc: 'Interactive app & web prototypes', isNew: false, hasInfo: true, tId: 'prototype' },
+                { title: 'Diagram', desc: 'Create flowcharts & diagrams', isNew: false, hasInfo: false, tId: 'flowchart' },
+                { title: 'Table', desc: 'Organize data in structural grid', isNew: false, hasInfo: false, tId: 'project-workspace' },
+                { title: 'Timeline', desc: 'Plan roadmap & project events', isNew: false, hasInfo: false, tId: 'roadmap-tracking' },
+                { title: 'Kanban', desc: 'Track tasks using board stages', isNew: false, hasInfo: false, tId: 'kanban' },
+                { title: 'Doc', desc: 'Write structured notes & specs', isNew: false, hasInfo: false, tId: 'feature-specs' },
+                { title: 'Slides', desc: 'Design presentation decks', isNew: false, hasInfo: false, tId: 'project-workspace' },
+                { title: 'Engage activities', desc: 'Brainwriting & workshop icebreakers', isNew: false, hasInfo: false, tId: 'brainwriting' },
+                { title: 'Talktrack', desc: 'Record & explain canvas walkthroughs', isNew: false, hasInfo: false, tId: 'standup' },
+                { title: 'Flows', desc: 'AI-assisted automatic process flows', isNew: true, hasInfo: false, tId: 'flowchart' }
               ].map((item) => (
-                <div key={item.title} className="p-2 border border-slate-100 dark:border-zinc-850 hover:bg-slate-50 dark:hover:bg-zinc-850/60 rounded-xl cursor-pointer transition-colors flex flex-col">
-                  <span className="font-semibold text-xs text-slate-850 dark:text-zinc-200">{item.title}</span>
-                  <span className="text-[10px] text-slate-450 dark:text-zinc-550">{item.desc}</span>
+                <div 
+                  key={item.title} 
+                  onClick={() => {
+                    setActiveExpandableMenu(null);
+                    setTemplateModalOpen(true);
+                  }}
+                  className="p-2 border border-slate-100 dark:border-zinc-850 hover:bg-slate-50 dark:hover:bg-zinc-850/60 rounded-xl cursor-pointer transition-colors flex items-center justify-between group"
+                >
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 font-semibold text-xs text-slate-850 dark:text-zinc-200 group-hover:text-blue-600 transition-colors">
+                      <span>{item.title}</span>
+                      {item.isNew && <span className="text-[9px] bg-blue-600 text-white font-bold px-1.5 py-0.2 rounded-full uppercase">New</span>}
+                      {item.hasInfo && <span className="text-[10px] text-slate-400">ⓘ</span>}
+                    </div>
+                    <span className="text-[10px] text-slate-450 dark:text-zinc-550">{item.desc}</span>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               ))}
             </div>
@@ -1712,7 +2058,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
       {/* 5. BOTTOM CONTROLS */}
-      <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
+      <div className="absolute bottom-4 left-2 right-2 sm:left-4 sm:right-auto z-30 flex items-center gap-2 flex-wrap">
         {/* Viewport Control Panel */}
         <div className="flex items-center gap-1 p-1 floating-panel rounded-2xl h-11">
           <button 
@@ -1737,8 +2083,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Plus size={14} />
           </button>
           <div className="w-px h-4 bg-slate-200 dark:bg-zinc-800 mx-1"></div>
-          <button 
-            onClick={resetViewport}
+          <button
+            onClick={fitViewportToContent}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
             title="Fit to Content"
           >
@@ -1758,6 +2104,26 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         >
           <Map size={16} />
         </button>
+
+        {/* Frame index and help. Zoom lives in the panel above — this widget
+            used to duplicate it, giving the board two zoom readouts. */}
+        <div className="flex items-center gap-1 bg-white/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 shadow-lg rounded-xl px-2 py-1 select-none text-xs font-semibold text-slate-700 dark:text-zinc-300">
+          <button
+            onClick={() => setFrameDrawerOpen(!isFrameDrawerOpen)}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-600 dark:text-zinc-400"
+            title="Frames & Slides Index"
+          >
+            <Frame size={14} />
+          </button>
+          <div className="h-3 w-px bg-slate-200 dark:bg-zinc-800 mx-0.5" />
+          <button
+            onClick={() => setShortcutsOpen(true)}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-600 dark:text-zinc-400"
+            title="Help & Shortcuts (?)"
+          >
+            <HelpCircle size={13} />
+          </button>
+        </div>
       </div>
 
       {/* 6. DEV METRICS PANEL */}
@@ -2078,6 +2444,124 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
         </aside>
+      )}
+
+      {/* Template Modal */}
+      {isTemplateModalOpen && (
+        <TemplateModal onClose={() => setTemplateModalOpen(false)} />
+      )}
+
+      {/* Command Palette */}
+      {isCommandPaletteOpen && (
+        <CommandPalette onClose={() => setCommandPaletteOpen(false)} />
+      )}
+
+      {/* Export Modal */}
+      {isExportModalOpen && (
+        <ExportModal onClose={() => setExportModalOpen(false)} />
+      )}
+
+      {/* Frame Navigation Drawer */}
+      {isFrameDrawerOpen && (
+        <FrameNavigationDrawer onClose={() => setFrameDrawerOpen(false)} />
+      )}
+
+      {/* COLLAPSIBLE ENTERPRISE SIDEBAR DRAWER */}
+      {isSidebarOpen && (
+        <aside className="fixed left-0 top-0 bottom-0 w-64 z-50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-r border-slate-200 dark:border-zinc-800 shadow-2xl p-5 flex flex-col justify-between animate-in slide-in-from-left duration-200 select-none">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2 font-bold text-sm text-slate-800 dark:text-zinc-100">
+                <div className="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center font-black text-xs">S</div>
+                <span>Antigravity Workspace</span>
+              </div>
+              <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-400">
+                <X size={16} />
+              </button>
+            </div>
+
+            <nav className="flex flex-col gap-1">
+              {[
+                { label: 'My Boards', icon: <Home size={16} />, active: true, action: () => { setCurrentBoardId(null); setIsSidebarOpen(false); } },
+                { label: 'Favorites', icon: <Heart size={16} />, action: () => { setCurrentBoardId(null); setIsSidebarOpen(false); } },
+                { label: 'Templates Library', icon: <LayoutGrid size={16} />, action: () => { setTemplateModalOpen(true); setIsSidebarOpen(false); } },
+                { label: 'AI Command Center', icon: <Sparkles size={16} className="text-brand-500" />, action: () => { setIsAIAssistantModalOpen(true); setIsSidebarOpen(false); } },
+                { label: 'Version History', icon: <Clock size={16} />, action: () => { setHistoryOpen(true); setIsSidebarOpen(false); } },
+                { label: 'Settings', icon: <Settings size={16} />, action: () => alert('Workspace Settings Operational') }
+              ].map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={item.action}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    item.active
+                      ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/30 dark:text-brand-400'
+                      : 'text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-xs text-slate-400">
+            <span>Antigravity v2.0 Pro</span>
+            <button onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800">
+              {resolvedTheme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* AI Image Generation Studio Modal */}
+      {isAIImageModalOpen && (
+        <AIImageModal onClose={() => setIsAIImageModalOpen(false)} />
+      )}
+
+      {/* Multi-Format File Importer Modal */}
+      {isFileImportModalOpen && (
+        <FileImportModal onClose={() => setIsFileImportModalOpen(false)} />
+      )}
+
+      {/* Web Resource Embedder Modal */}
+      {isWebResourceModalOpen && (
+        <WebResourceModal onClose={() => setIsWebResourceModalOpen(false)} />
+      )}
+
+      {/* Diagramming Shapes Side Drawer (Matching Screenshots 1-5) */}
+      {isDiagrammingDrawerOpen && (
+        <DiagrammingShapesDrawer onClose={() => setDiagrammingDrawerOpen(false)} />
+      )}
+
+      {/* Personal diary */}
+      {isDiaryOpen && (
+        <DiaryDrawer onClose={() => setDiaryOpen(false)} />
+      )}
+
+      {/* AI creation modal */}
+      {isAIAssistantModalOpen && (
+        <AIAssistantModal onClose={() => setIsAIAssistantModalOpen(false)} />
+      )}
+
+      {/* Fullscreen Interactive Presentation Player Mode */}
+      {isPresentationOpen && (
+        <PresentationPlayer onClose={() => setPresentationOpen(false)} />
+      )}
+
+      {/* Board styles side drawer */}
+      {isStylesDrawerOpen && (
+        <StylesDrawer onClose={() => setStylesDrawerOpen(false)} />
+      )}
+
+      {/* Slide Layouts Picker Modal (Matching Screenshots 3, 4, 5) */}
+      {isSlideLayoutsModalOpen && (
+        <SlideLayoutsModal onClose={() => setSlideLayoutsModalOpen(false)} />
+      )}
+
+      {/* Mermaid "build with code" editor */}
+      {isMermaidModalOpen && (
+        <MermaidCodeModal onClose={() => setMermaidModalOpen(false)} />
       )}
     </div>
   );
