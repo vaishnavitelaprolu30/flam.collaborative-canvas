@@ -1,7 +1,10 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
 
-const dbPath = path.resolve(__dirname, '../syncsketch.db');
+const dbPath = process.env.VERCEL
+  ? path.join('/tmp', 'syncsketch.db')
+  : path.resolve(__dirname, '../syncsketch.db');
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Database connection failed:', err);

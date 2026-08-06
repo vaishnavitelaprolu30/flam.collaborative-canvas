@@ -1047,6 +1047,11 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+if (!process.env.VERCEL) {
+  server.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+export { app, server };
+export default app;
